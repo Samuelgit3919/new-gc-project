@@ -1,60 +1,77 @@
 "use client"
 
-import { Search, X, Filter, Eye, ChevronLeft, ChevronRight } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Search, Filter, Eye, ChevronLeft, ChevronRight, X } from "lucide-react"
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table"
 import { Badge } from "../components/ui/badge"
 import {
     DropdownMenu,
+    DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuLabel,
     DropdownMenuSeparator,
-    DropdownMenuCheckboxItem,
     DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu"
+import OrderDetailsDialog from "./OrderDetailsDialog"
+import { getStatusColor, toggleFilter, clearFilters } from "../admin/utils/helpers"
 
-interface OrderManagementViewProps {
-    orders: any[]
-    filteredOrders: any[]
-    currentOrders: any[]
-    searchQuery: string
-    setSearchQuery: (query: string) => void
-    orderActiveFilters: {
-        statuses: string[]
+function OrderManagementView({ orders, setOrders, searchQuery, setSearchQuery }) {
+    const [filteredOrders, setFilteredOrders] = useState(orders)
+    const [currentPage, setCurrentPage] = useState(1)
+    const [selectedOrder, setSelectedOrder] = useState(null)
+    const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+    const [activeFilters, setActiveFilters] = useState({
+        statuses: [],
+    })
+
+    const itemsPerPage = 5
+
+    // Get unique statuses for filters
+    const statuses = Array.from(new Set(orders.map((order) => order.status)))
+
+    // Apply filters and search
+    useEffect(() => {
+        let result = [...orders]
+
+        // Apply search
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase()
+            result = result.filter(
+                (order) =>
+                    order.id.toLowerCase().includes(query) ||
+                    order.customer.toLowerCase().includes(query) ||
+                    order.email.toLowerCase().includes(query),
+            )
+        }
+
+        // Apply status filters
+        if (activeFilters.statuses.length > 0) {
+            result = result.filter((order) => activeFilters.statuses.includes(order.status))
+        }
+
+        setFilteredOrders(result)
+        setCurrentPage(1) // Reset to first page when filters change
+    }, [orders, searchQuery, activeFilters])
+
+    // Pagination
+    const totalPages = Math.ceil(filteredOrders.length / itemsPerPage)
+    const indexOfLastOrder = currentPage * itemsPerPage
+    const indexOfFirstOrder = indexOfLastOrder - itemsPerPage
+    const currentOrders = filteredOrders.slice(indexOfFirstOrder, indexOfLastOrder)
+
+    const handleViewOrder = (order) => {
+        setSelectedOrder(order)
+        setIsViewDialogOpen(true)
     }
-    orderStatuses: string[]
-    orderCurrentPage: number
-    setOrderCurrentPage: (page: number) => void
-    orderTotalPages: number
-    orderIndexOfFirstItem: number
-    orderIndexOfLastItem: number
-    handleViewOrder: (order: any) => void
-    toggleFilter: (filterType: string, filterValue: string, filterState: any, setFilterState: any) => void
-    clearFilters: (setFilterState: any) => void
-    setOrderActiveFilters: (filters: any) => void
-    getStatusColor: (status: string) => string
-}
 
-export default function OrderManagementView({
-    orders,
-    filteredOrders,
-    currentOrders,
-    searchQuery,
-    setSearchQuery,
-    orderActiveFilters,
-    orderStatuses,
-    orderCurrentPage,
-    setOrderCurrentPage,
-    orderTotalPages,
-    orderIndexOfFirstItem,
-    orderIndexOfLastItem,
-    handleViewOrder,
-    toggleFilter,
-    clearFilters,
-    setOrderActiveFilters,
-    getStatusColor,
-}: OrderManagementViewProps) {
+    const handleUpdateOrderStatus = (orderId, newStatus) => {
+        const updatedOrders = orders.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order))
+        setOrders(updatedOrders)
+        setIsViewDialogOpen(false)
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -74,8 +91,12 @@ export default function OrderManagementView({
                 </div>
 
                 <div className="flex gap-2">
-                    {orderActiveFilters.statuses.length > 0 && (
-                        <Button variant="outline" size="sm" onClick={() => clearFilters(setOrderActiveFilters)}>
+                    {activeFilters.statuses.length > 0 && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => clearFilters("orders", setActiveFilters, setSearchQuery)}
+                        >
                             <X className="mr-2 h-4 w-4" />
                             Clear Filters
                         </Button>
@@ -91,11 +112,11 @@ export default function OrderManagementView({
                         <DropdownMenuContent className="w-56">
                             <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            {orderStatuses.map((status) => (
+                            {statuses.map((status) => (
                                 <DropdownMenuCheckboxItem
                                     key={status}
-                                    checked={orderActiveFilters.statuses.includes(status)}
-                                    onCheckedChange={() => toggleFilter("statuses", status, orderActiveFilters, setOrderActiveFilters)}
+                                    checked={activeFilters.statuses.includes(status)}
+                                    onCheckedChange={() => toggleFilter("statuses", status, activeFilters, setActiveFilters)}
                                 >
                                     {status}
                                 </DropdownMenuCheckboxItem>
@@ -159,39 +180,39 @@ export default function OrderManagementView({
             {filteredOrders.length > 0 && (
                 <div className="flex items-center justify-between">
                     <div className="text-sm text-gray-500">
-                        Showing <strong>{orderIndexOfFirstItem + 1}</strong> to{" "}
-                        <strong>{Math.min(orderIndexOfLastItem, filteredOrders.length)}</strong> of{" "}
+                        Showing <strong>{indexOfFirstOrder + 1}</strong> to{" "}
+                        <strong>{Math.min(indexOfLastOrder, filteredOrders.length)}</strong> of{" "}
                         <strong>{filteredOrders.length}</strong> orders
                     </div>
                     <div className="flex items-center gap-2">
                         <Button
                             variant="outline"
                             size="icon"
-                            onClick={() => setOrderCurrentPage((prev) => Math.max(1, prev - 1))}
-                            disabled={orderCurrentPage === 1}
+                            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1}
                         >
                             <ChevronLeft className="h-4 w-4" />
                             <span className="sr-only">Previous page</span>
                         </Button>
 
-                        {Array.from({ length: Math.min(5, orderTotalPages) }, (_, i) => {
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                             let pageNum = i + 1
-                            if (orderTotalPages > 5) {
-                                if (orderCurrentPage > 3) {
-                                    pageNum = orderCurrentPage - 3 + i
+                            if (totalPages > 5) {
+                                if (currentPage > 3) {
+                                    pageNum = currentPage - 3 + i
                                 }
-                                if (pageNum > orderTotalPages) {
-                                    pageNum = orderTotalPages - (4 - i)
+                                if (pageNum > totalPages) {
+                                    pageNum = totalPages - (4 - i)
                                 }
                             }
 
                             return (
                                 <Button
                                     key={pageNum}
-                                    variant={orderCurrentPage === pageNum ? "outline" : "ghost"}
+                                    variant={currentPage === pageNum ? "outline" : "ghost"}
                                     size="sm"
-                                    className={orderCurrentPage === pageNum ? "font-medium" : ""}
-                                    onClick={() => setOrderCurrentPage(pageNum)}
+                                    className={currentPage === pageNum ? "font-medium" : ""}
+                                    onClick={() => setCurrentPage(pageNum)}
                                 >
                                     {pageNum}
                                 </Button>
@@ -201,8 +222,8 @@ export default function OrderManagementView({
                         <Button
                             variant="outline"
                             size="icon"
-                            onClick={() => setOrderCurrentPage((prev) => Math.min(orderTotalPages, prev + 1))}
-                            disabled={orderCurrentPage === orderTotalPages}
+                            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                            disabled={currentPage === totalPages}
                         >
                             <ChevronRight className="h-4 w-4" />
                             <span className="sr-only">Next page</span>
@@ -210,6 +231,15 @@ export default function OrderManagementView({
                     </div>
                 </div>
             )}
+
+            <OrderDetailsDialog
+                open={isViewDialogOpen}
+                onOpenChange={setIsViewDialogOpen}
+                order={selectedOrder}
+                onUpdateStatus={handleUpdateOrderStatus}
+            />
         </div>
     )
 }
+
+export default OrderManagementView

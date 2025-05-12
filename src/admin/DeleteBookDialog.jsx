@@ -9,17 +9,11 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-} from "../components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog"
 
-interface DeleteBookDialogProps {
-    isOpen: boolean
-    onOpenChange: (open: boolean) => void
-    onConfirm: () => void
-}
-
-export default function DeleteBookDialog({ isOpen, onOpenChange, onConfirm }: DeleteBookDialogProps) {
+function DeleteBookDialog({ open, onOpenChange, onConfirm }) {
     return (
-        <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
+        <AlertDialog open={open} onOpenChange={onOpenChange}>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
@@ -37,3 +31,5 @@ export default function DeleteBookDialog({ isOpen, onOpenChange, onConfirm }: De
         </AlertDialog>
     )
 }
+
+export default DeleteBookDialog

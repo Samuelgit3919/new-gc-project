@@ -41,7 +41,7 @@ export default function Login() {
             }
             localStorage.setItem("token", data.token);
             localStorage.setItem("user", JSON.stringify(data.user)); // Store user data in local storage
-            navigate("/verify-email");
+            navigate("/");
             // navigate("/"); // Redirect to the home page after successful login
         }
 
@@ -103,7 +103,7 @@ export default function Login() {
                                     Password
                                 </label>
                                 <Link
-                                    to="/forgot-password"
+                                    to="/forgotPassword"
                                     className="text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors"
                                 >
                                     Forgot your password?

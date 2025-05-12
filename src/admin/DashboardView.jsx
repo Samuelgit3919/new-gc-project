@@ -1,44 +1,27 @@
-"use client"
+
+import { useState } from "react"
 
 import { useRef, useEffect } from "react"
 import { BookOpen, ShoppingCart, Users, DollarSign, TrendingUp, TrendingDown } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar"
+import { calculateMonthlySales, getTopSellingBooks } from "../admin/utils/helpers"
 
-interface Book {
-    id: number
-    title: string
-    author: string
-    image: string
-    sales: number
-}
+function DashboardView({ books, orders, users }) {
+    const canvasRef = useRef(null)
+    const [bookGrowth] = useState(12.5)
+    const [orderGrowth] = useState(8.2)
+    const [userGrowth] = useState(5.7)
+    const [revenueGrowth] = useState(-2.3)
 
-interface DashboardViewProps {
-    books: any[]
-    orders: any[]
-    users: any[]
-    bookGrowth: number
-    orderGrowth: number
-    userGrowth: number
-    revenueGrowth: number
-    calculateMonthlySales: () => { months: string[]; sales: number[] }
-    getTopSellingBooks: () => Book[]
-}
-
-export default function DashboardView({
-    books,
-    orders,
-    users,
-    bookGrowth,
-    orderGrowth,
-    userGrowth,
-    revenueGrowth,
-    calculateMonthlySales,
-    getTopSellingBooks,
-}: DashboardViewProps) {
-    const canvasRef = useRef < HTMLCanvasElement > (null)
+    // Calculate dashboard stats
     const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0)
-    const { months, sales } = calculateMonthlySales()
+    const completedOrders = orders.filter((order) => order.status === "Completed").length
+    const activeUserCount = users.filter((user) => user.status === "Active").length
+
+    // Dashboard chart data
+    const { months, sales } = calculateMonthlySales(orders)
+    const topSellingBooks = getTopSellingBooks(books)
 
     // Chart rendering
     useEffect(() => {
@@ -245,7 +228,7 @@ export default function DashboardView({
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
-                            {getTopSellingBooks().map((book) => (
+                            {topSellingBooks.map((book) => (
                                 <div key={book.id} className="flex items-center gap-4">
                                     <Avatar className="h-10 w-10 rounded-sm">
                                         <AvatarImage src={book.image || "/placeholder.svg"} alt={book.title} />
@@ -265,3 +248,5 @@ export default function DashboardView({
         </div>
     )
 }
+
+export default DashboardView

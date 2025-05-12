@@ -1,6 +1,7 @@
 "use client"
 
-import { Plus, Search, X, Filter, Edit, Trash2, ChevronLeft, ChevronRight } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Plus, Search, Edit, Trash2, ChevronLeft, ChevronRight, Filter, X } from "lucide-react"
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table"
@@ -8,61 +9,116 @@ import { Badge } from "../components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar"
 import {
     DropdownMenu,
+    DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuLabel,
     DropdownMenuSeparator,
-    DropdownMenuCheckboxItem,
     DropdownMenuTrigger,
-} from "../components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu"
+import BookDialog from "./BookDialog"
+import DeleteBookDialog from "./DeleteBookDialog"
+import { getStatusColor, toggleFilter, clearFilters } from "../admin/utils/helpers"
 
-interface BookManagementViewProps {
-    books: any[]
-    filteredBooks: any[]
-    currentBooks: any[]
-    searchQuery: string
-    setSearchQuery: (query: string) => void
-    bookActiveFilters: {
-        categories: string[]
-        statuses: string[]
+function BookManagementView({ books = [], setBooks, searchQuery, setSearchQuery }) {
+    const [isBookDialogOpen, setIsBookDialogOpen] = useState(false)
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+    const [editingBook, setEditingBook] = useState(null)
+    const [deletingBookId, setDeletingBookId] = useState(null)
+    const [filteredBooks, setFilteredBooks] = useState(books || [])
+    const [currentPage, setCurrentPage] = useState(1)
+    const [activeFilters, setActiveFilters] = useState({
+        categories: [],
+        statuses: [],
+    })
+
+    const itemsPerPage = 5
+
+    // Get unique categories and statuses for filters
+    const categories = Array.from(new Set((books || []).map((book) => book.category)))
+    const statuses = Array.from(new Set((books || []).map((book) => book.status)))
+
+
+    // Apply filters and search
+    useEffect(() => {
+        let result = [...books]
+
+        // Apply search
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase()
+            result = result.filter(
+                (book) =>
+                    book.title.toLowerCase().includes(query) ||
+                    book.author.toLowerCase().includes(query) ||
+                    book.isbn.toLowerCase().includes(query) ||
+                    book.category.toLowerCase().includes(query),
+            )
+        }
+
+        // Apply category filters
+        if (activeFilters.categories.length > 0) {
+            result = result.filter((book) => activeFilters.categories.includes(book.category))
+        }
+
+        // Apply status filters
+        if (activeFilters.statuses.length > 0) {
+            result = result.filter((book) => activeFilters.statuses.includes(book.status))
+        }
+
+        setFilteredBooks(result)
+        setCurrentPage(1) // Reset to first page when filters change
+    }, [books, searchQuery, activeFilters])
+
+    // Pagination
+    const totalPages = Math.ceil(filteredBooks.length / itemsPerPage)
+    const indexOfLastBook = currentPage * itemsPerPage
+    const indexOfFirstBook = indexOfLastBook - itemsPerPage
+    const currentBooks = filteredBooks.slice(indexOfFirstBook, indexOfLastBook)
+
+    const handleAddBook = () => {
+        setEditingBook(null)
+        setIsBookDialogOpen(true)
     }
-    bookCategories: string[]
-    bookStatuses: string[]
-    bookCurrentPage: number
-    setBookCurrentPage: (page: number) => void
-    bookTotalPages: number
-    bookIndexOfFirstItem: number
-    bookIndexOfLastItem: number
-    handleAddBook: () => void
-    handleEditBook: (book: any) => void
-    handleDeleteBook: (id: number) => void
-    toggleFilter: (filterType: string, filterValue: string, filterState: any, setFilterState: any) => void
-    clearFilters: (setFilterState: any) => void
-    setBookActiveFilters: (filters: any) => void
-    getStatusColor: (status: string) => string
-}
 
-export default function BookManagementView({
-    books,
-    filteredBooks,
-    currentBooks,
-    searchQuery,
-    setSearchQuery,
-    bookActiveFilters,
-    bookCategories,
-    bookStatuses,
-    bookCurrentPage,
-    setBookCurrentPage,
-    bookTotalPages,
-    bookIndexOfFirstItem,
-    bookIndexOfLastItem,
-    handleAddBook,
-    handleEditBook,
-    handleDeleteBook,
-    toggleFilter,
-    clearFilters,
-    setBookActiveFilters,
-    getStatusColor,
-}: BookManagementViewProps) {
+    const handleEditBook = (book) => {
+        setEditingBook(book)
+        setIsBookDialogOpen(true)
+    }
+
+    const handleDeleteBook = (id) => {
+        setDeletingBookId(id)
+        setIsDeleteDialogOpen(true)
+    }
+
+    const confirmDeleteBook = () => {
+        if (deletingBookId !== null) {
+            setBooks(books.filter((book) => book.id !== deletingBookId))
+            setIsDeleteDialogOpen(false)
+            setDeletingBookId(null)
+        }
+    }
+
+    const handleSaveBook = (bookData) => {
+        if (bookData.id) {
+            // Update existing book
+            setBooks(books.map((b) => (b.id === bookData.id ? bookData : b)))
+        } else {
+            // Add new book
+            const newBook = {
+                ...bookData,
+                id: Math.max(0, ...books.map((b) => b.id)) + 1,
+            }
+            setBooks([...books, newBook])
+        }
+        setIsBookDialogOpen(false)
+    }
+    
+    if (!books) {
+        return <div>Loading books...</div>
+    }
+    if (books.length === 0) {
+        return <div>No books available</div>
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -86,8 +142,8 @@ export default function BookManagementView({
                 </div>
 
                 <div className="flex gap-2">
-                    {(bookActiveFilters.categories.length > 0 || bookActiveFilters.statuses.length > 0) && (
-                        <Button variant="outline" size="sm" onClick={() => clearFilters(setBookActiveFilters)}>
+                    {(activeFilters.categories.length > 0 || activeFilters.statuses.length > 0) && (
+                        <Button variant="outline" size="sm" onClick={() => clearFilters("books", setActiveFilters, setSearchQuery)}>
                             <X className="mr-2 h-4 w-4" />
                             Clear Filters
                         </Button>
@@ -103,11 +159,11 @@ export default function BookManagementView({
                         <DropdownMenuContent className="w-56">
                             <DropdownMenuLabel>Filter by Category</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            {bookCategories.map((category) => (
+                            {categories.map((category) => (
                                 <DropdownMenuCheckboxItem
                                     key={category}
-                                    checked={bookActiveFilters.categories.includes(category)}
-                                    onCheckedChange={() => toggleFilter("categories", category, bookActiveFilters, setBookActiveFilters)}
+                                    checked={activeFilters.categories.includes(category)}
+                                    onCheckedChange={() => toggleFilter("categories", category, activeFilters, setActiveFilters)}
                                 >
                                     {category}
                                 </DropdownMenuCheckboxItem>
@@ -116,11 +172,11 @@ export default function BookManagementView({
                             <DropdownMenuSeparator />
                             <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            {bookStatuses.map((status) => (
+                            {statuses.map((status) => (
                                 <DropdownMenuCheckboxItem
                                     key={status}
-                                    checked={bookActiveFilters.statuses.includes(status)}
-                                    onCheckedChange={() => toggleFilter("statuses", status, bookActiveFilters, setBookActiveFilters)}
+                                    checked={activeFilters.statuses.includes(status)}
+                                    onCheckedChange={() => toggleFilter("statuses", status, activeFilters, setActiveFilters)}
                                 >
                                     {status}
                                 </DropdownMenuCheckboxItem>
@@ -196,39 +252,39 @@ export default function BookManagementView({
             {filteredBooks.length > 0 && (
                 <div className="flex items-center justify-between">
                     <div className="text-sm text-gray-500">
-                        Showing <strong>{bookIndexOfFirstItem + 1}</strong> to{" "}
-                        <strong>{Math.min(bookIndexOfLastItem, filteredBooks.length)}</strong> of{" "}
+                        Showing <strong>{indexOfFirstBook + 1}</strong> to{" "}
+                        <strong>{Math.min(indexOfLastBook, filteredBooks.length)}</strong> of{" "}
                         <strong>{filteredBooks.length}</strong> books
                     </div>
                     <div className="flex items-center gap-2">
                         <Button
                             variant="outline"
                             size="icon"
-                            onClick={() => setBookCurrentPage((prev) => Math.max(1, prev - 1))}
-                            disabled={bookCurrentPage === 1}
+                            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1}
                         >
                             <ChevronLeft className="h-4 w-4" />
                             <span className="sr-only">Previous page</span>
                         </Button>
 
-                        {Array.from({ length: Math.min(5, bookTotalPages) }, (_, i) => {
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                             let pageNum = i + 1
-                            if (bookTotalPages > 5) {
-                                if (bookCurrentPage > 3) {
-                                    pageNum = bookCurrentPage - 3 + i
+                            if (totalPages > 5) {
+                                if (currentPage > 3) {
+                                    pageNum = currentPage - 3 + i
                                 }
-                                if (pageNum > bookTotalPages) {
-                                    pageNum = bookTotalPages - (4 - i)
+                                if (pageNum > totalPages) {
+                                    pageNum = totalPages - (4 - i)
                                 }
                             }
 
                             return (
                                 <Button
                                     key={pageNum}
-                                    variant={bookCurrentPage === pageNum ? "outline" : "ghost"}
+                                    variant={currentPage === pageNum ? "outline" : "ghost"}
                                     size="sm"
-                                    className={bookCurrentPage === pageNum ? "font-medium" : ""}
-                                    onClick={() => setBookCurrentPage(pageNum)}
+                                    className={currentPage === pageNum ? "font-medium" : ""}
+                                    onClick={() => setCurrentPage(pageNum)}
                                 >
                                     {pageNum}
                                 </Button>
@@ -238,8 +294,8 @@ export default function BookManagementView({
                         <Button
                             variant="outline"
                             size="icon"
-                            onClick={() => setBookCurrentPage((prev) => Math.min(bookTotalPages, prev + 1))}
-                            disabled={bookCurrentPage === bookTotalPages}
+                            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                            disabled={currentPage === totalPages}
                         >
                             <ChevronRight className="h-4 w-4" />
                             <span className="sr-only">Next page</span>
@@ -247,6 +303,17 @@ export default function BookManagementView({
                     </div>
                 </div>
             )}
+
+            <BookDialog
+                open={isBookDialogOpen}
+                onOpenChange={setIsBookDialogOpen}
+                book={editingBook}
+                onSave={handleSaveBook}
+            />
+
+            <DeleteBookDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen} onConfirm={confirmDeleteBook} />
         </div>
     )
 }
+
+export default BookManagementView

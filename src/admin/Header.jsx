@@ -13,15 +13,6 @@ import {
 } from "../components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar"
 
-interface HeaderProps {
-    title: string
-    isMobile: boolean
-    sidebarOpen: boolean
-    setSidebarOpen: (open: boolean) => void
-    searchQuery: string
-    setSearchQuery: (query: string) => void
-}
-
 export default function Header({
     title,
     isMobile,
@@ -29,7 +20,7 @@ export default function Header({
     setSidebarOpen,
     searchQuery,
     setSearchQuery,
-}: HeaderProps) {
+}) {
     return (
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white px-4 dark:bg-gray-800 dark:border-gray-700">
             {isMobile && (

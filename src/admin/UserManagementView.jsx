@@ -1,6 +1,7 @@
-"use client"
 
-import { Search, X, Filter, Eye, ChevronLeft, ChevronRight } from "lucide-react"
+
+import { useState, useEffect } from "react"
+import { Search, Filter, Eye, ChevronLeft, ChevronRight, X } from "lucide-react"
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table"
@@ -8,57 +9,60 @@ import { Badge } from "../components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar"
 import {
     DropdownMenu,
+    DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuLabel,
     DropdownMenuSeparator,
-    DropdownMenuCheckboxItem,
     DropdownMenuTrigger,
-} from "../components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu"
+import { getStatusColor, getRoleColor, toggleFilter, clearFilters } from "../admin/utils/helpers"
 
-interface UserManagementViewProps {
-    users: any[]
-    filteredUsers: any[]
-    currentUsers: any[]
-    searchQuery: string
-    setSearchQuery: (query: string) => void
-    userActiveFilters: {
-        roles: string[]
-        statuses: string[]
-    }
-    userRoles: string[]
-    userStatuses: string[]
-    userCurrentPage: number
-    setUserCurrentPage: (page: number) => void
-    userTotalPages: number
-    userIndexOfFirstItem: number
-    userIndexOfLastItem: number
-    toggleFilter: (filterType: string, filterValue: string, filterState: any, setFilterState: any) => void
-    clearFilters: (setFilterState: any) => void
-    setUserActiveFilters: (filters: any) => void
-    getStatusColor: (status: string) => string
-    getRoleColor: (role: string) => string
-}
+function UserManagementView({ users, setUsers, searchQuery, setSearchQuery }) {
+    const [filteredUsers, setFilteredUsers] = useState(users)
+    const [currentPage, setCurrentPage] = useState(1)
+    const [activeFilters, setActiveFilters] = useState({
+        roles: [],
+        statuses: [],
+    })
 
-export default function UserManagementView({
-    users,
-    filteredUsers,
-    currentUsers,
-    searchQuery,
-    setSearchQuery,
-    userActiveFilters,
-    userRoles,
-    userStatuses,
-    userCurrentPage,
-    setUserCurrentPage,
-    userTotalPages,
-    userIndexOfFirstItem,
-    userIndexOfLastItem,
-    toggleFilter,
-    clearFilters,
-    setUserActiveFilters,
-    getStatusColor,
-    getRoleColor,
-}: UserManagementViewProps) {
+    const itemsPerPage = 5
+
+    // Get unique roles and statuses for filters
+    const roles = Array.from(new Set(users.map((user) => user.role)))
+    const statuses = Array.from(new Set(users.map((user) => user.status)))
+
+    // Apply filters and search
+    useEffect(() => {
+        let result = [...users]
+
+        // Apply search
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase()
+            result = result.filter(
+                (user) => user.name.toLowerCase().includes(query) || user.email.toLowerCase().includes(query),
+            )
+        }
+
+        // Apply role filters
+        if (activeFilters.roles.length > 0) {
+            result = result.filter((user) => activeFilters.roles.includes(user.role))
+        }
+
+        // Apply status filters
+        if (activeFilters.statuses.length > 0) {
+            result = result.filter((user) => activeFilters.statuses.includes(user.status))
+        }
+
+        setFilteredUsers(result)
+        setCurrentPage(1) // Reset to first page when filters change
+    }, [users, searchQuery, activeFilters])
+
+    // Pagination
+    const totalPages = Math.ceil(filteredUsers.length / itemsPerPage)
+    const indexOfLastUser = currentPage * itemsPerPage
+    const indexOfFirstUser = indexOfLastUser - itemsPerPage
+    const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser)
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -78,8 +82,8 @@ export default function UserManagementView({
                 </div>
 
                 <div className="flex gap-2">
-                    {(userActiveFilters.roles.length > 0 || userActiveFilters.statuses.length > 0) && (
-                        <Button variant="outline" size="sm" onClick={() => clearFilters(setUserActiveFilters)}>
+                    {(activeFilters.roles.length > 0 || activeFilters.statuses.length > 0) && (
+                        <Button variant="outline" size="sm" onClick={() => clearFilters("users", setActiveFilters, setSearchQuery)}>
                             <X className="mr-2 h-4 w-4" />
                             Clear Filters
                         </Button>
@@ -95,11 +99,11 @@ export default function UserManagementView({
                         <DropdownMenuContent className="w-56">
                             <DropdownMenuLabel>Filter by Role</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            {userRoles.map((role) => (
+                            {roles.map((role) => (
                                 <DropdownMenuCheckboxItem
                                     key={role}
-                                    checked={userActiveFilters.roles.includes(role)}
-                                    onCheckedChange={() => toggleFilter("roles", role, userActiveFilters, setUserActiveFilters)}
+                                    checked={activeFilters.roles.includes(role)}
+                                    onCheckedChange={() => toggleFilter("roles", role, activeFilters, setActiveFilters)}
                                 >
                                     {role}
                                 </DropdownMenuCheckboxItem>
@@ -108,11 +112,11 @@ export default function UserManagementView({
                             <DropdownMenuSeparator />
                             <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            {userStatuses.map((status) => (
+                            {statuses.map((status) => (
                                 <DropdownMenuCheckboxItem
                                     key={status}
-                                    checked={userActiveFilters.statuses.includes(status)}
-                                    onCheckedChange={() => toggleFilter("statuses", status, userActiveFilters, setUserActiveFilters)}
+                                    checked={activeFilters.statuses.includes(status)}
+                                    onCheckedChange={() => toggleFilter("statuses", status, activeFilters, setActiveFilters)}
                                 >
                                     {status}
                                 </DropdownMenuCheckboxItem>
@@ -184,39 +188,39 @@ export default function UserManagementView({
             {filteredUsers.length > 0 && (
                 <div className="flex items-center justify-between">
                     <div className="text-sm text-gray-500">
-                        Showing <strong>{userIndexOfFirstItem + 1}</strong> to{" "}
-                        <strong>{Math.min(userIndexOfLastItem, filteredUsers.length)}</strong> of{" "}
+                        Showing <strong>{indexOfFirstUser + 1}</strong> to{" "}
+                        <strong>{Math.min(indexOfLastUser, filteredUsers.length)}</strong> of{" "}
                         <strong>{filteredUsers.length}</strong> users
                     </div>
                     <div className="flex items-center gap-2">
                         <Button
                             variant="outline"
                             size="icon"
-                            onClick={() => setUserCurrentPage((prev) => Math.max(1, prev - 1))}
-                            disabled={userCurrentPage === 1}
+                            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1}
                         >
                             <ChevronLeft className="h-4 w-4" />
                             <span className="sr-only">Previous page</span>
                         </Button>
 
-                        {Array.from({ length: Math.min(5, userTotalPages) }, (_, i) => {
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                             let pageNum = i + 1
-                            if (userTotalPages > 5) {
-                                if (userCurrentPage > 3) {
-                                    pageNum = userCurrentPage - 3 + i
+                            if (totalPages > 5) {
+                                if (currentPage > 3) {
+                                    pageNum = currentPage - 3 + i
                                 }
-                                if (pageNum > userTotalPages) {
-                                    pageNum = userTotalPages - (4 - i)
+                                if (pageNum > totalPages) {
+                                    pageNum = totalPages - (4 - i)
                                 }
                             }
 
                             return (
                                 <Button
                                     key={pageNum}
-                                    variant={userCurrentPage === pageNum ? "outline" : "ghost"}
+                                    variant={currentPage === pageNum ? "outline" : "ghost"}
                                     size="sm"
-                                    className={userCurrentPage === pageNum ? "font-medium" : ""}
-                                    onClick={() => setUserCurrentPage(pageNum)}
+                                    className={currentPage === pageNum ? "font-medium" : ""}
+                                    onClick={() => setCurrentPage(pageNum)}
                                 >
                                     {pageNum}
                                 </Button>
@@ -226,8 +230,8 @@ export default function UserManagementView({
                         <Button
                             variant="outline"
                             size="icon"
-                            onClick={() => setUserCurrentPage((prev) => Math.min(userTotalPages, prev + 1))}
-                            disabled={userCurrentPage === userTotalPages}
+                            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                            disabled={currentPage === totalPages}
                         >
                             <ChevronRight className="h-4 w-4" />
                             <span className="sr-only">Next page</span>
@@ -238,3 +242,5 @@ export default function UserManagementView({
         </div>
     )
 }
+
+export default UserManagementView

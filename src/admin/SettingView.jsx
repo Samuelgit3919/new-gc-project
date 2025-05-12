@@ -1,66 +1,75 @@
 "use client"
 
-import type React from "react"
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Switch } from "@/components/ui/switch"
 
-import { Button } from "../components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card"
-import { Input } from "../components/ui/input"
-import { Label } from "../components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
-import { Switch } from "../components/ui/switch"
-import { Textarea } from "../components/ui/textarea"
+function SettingsView({ settings, setSettings }) {
+    const [formData, setFormData] = useState(settings)
+    const [passwordData, setPasswordData] = useState({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+    })
 
-interface SettingsViewProps {
-    settings: {
-        storeName: string
-        email: string
-        phone: string
-        currency: string
-        address: string
-        notifications: {
-            newOrder: boolean
-            lowStock: boolean
-            customerAccount: boolean
-            marketing: boolean
+    // Reset form when settings change
+    useEffect(() => {
+        setFormData(settings)
+    }, [settings])
+
+    const handleChange = (e) => {
+        const { name, value } = e.target
+        setFormData((prev) => ({ ...prev, [name]: value }))
+    }
+
+    const handleNotificationChange = (name, checked) => {
+        setFormData((prev) => ({
+            ...prev,
+            notifications: {
+                ...prev.notifications,
+                [name]: checked,
+            },
+        }))
+    }
+
+    const handleCurrencyChange = (value) => {
+        setFormData((prev) => ({ ...prev, currency: value }))
+    }
+
+    const handlePasswordChange = (e) => {
+        const { name, value } = e.target
+        setPasswordData((prev) => ({ ...prev, [name]: value }))
+    }
+
+    const handleSaveSettings = () => {
+        setSettings(formData)
+        alert("Settings saved successfully!")
+    }
+
+    const handleUpdatePassword = (e) => {
+        e.preventDefault()
+        // In a real app, you would validate and update the password
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+            alert("New passwords don't match!")
+            return
         }
-    }
-    settingsFormData: {
-        storeName: string
-        email: string
-        phone: string
-        currency: string
-        address: string
-        notifications: {
-            newOrder: boolean
-            lowStock: boolean
-            customerAccount: boolean
-            marketing: boolean
+        if (!passwordData.currentPassword) {
+            alert("Current password is required!")
+            return
         }
+        alert("Password updated successfully!")
+        setPasswordData({
+            currentPassword: "",
+            newPassword: "",
+            confirmPassword: "",
+        })
     }
-    passwordData: {
-        currentPassword: string
-        newPassword: string
-        confirmPassword: string
-    }
-    handleSettingsChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void
-    handleNotificationChange: (name: string, checked: boolean) => void
-    handleCurrencyChange: (value: string) => void
-    handlePasswordChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-    handleSaveSettings: () => void
-    handleUpdatePassword: (e: React.FormEvent) => void
-}
 
-export default function SettingsView({
-    settings,
-    settingsFormData,
-    passwordData,
-    handleSettingsChange,
-    handleNotificationChange,
-    handleCurrencyChange,
-    handlePasswordChange,
-    handleSaveSettings,
-    handleUpdatePassword,
-}: SettingsViewProps) {
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -77,36 +86,19 @@ export default function SettingsView({
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div className="space-y-2">
                                 <Label htmlFor="storeName">Store Name</Label>
-                                <Input
-                                    id="storeName"
-                                    name="storeName"
-                                    value={settingsFormData.storeName}
-                                    onChange={handleSettingsChange}
-                                />
+                                <Input id="storeName" name="storeName" value={formData.storeName} onChange={handleChange} />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="email">Email Address</Label>
-                                <Input
-                                    id="email"
-                                    name="email"
-                                    type="email"
-                                    value={settingsFormData.email}
-                                    onChange={handleSettingsChange}
-                                />
+                                <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="phone">Phone Number</Label>
-                                <Input
-                                    id="phone"
-                                    name="phone"
-                                    type="tel"
-                                    value={settingsFormData.phone}
-                                    onChange={handleSettingsChange}
-                                />
+                                <Input id="phone" name="phone" type="tel" value={formData.phone} onChange={handleChange} />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="currency">Currency</Label>
-                                <Select value={settingsFormData.currency} onValueChange={handleCurrencyChange}>
+                                <Select value={formData.currency} onValueChange={handleCurrencyChange}>
                                     <SelectTrigger id="currency">
                                         <SelectValue placeholder="Select currency" />
                                     </SelectTrigger>
@@ -121,7 +113,7 @@ export default function SettingsView({
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="address">Address</Label>
-                            <Textarea id="address" name="address" value={settingsFormData.address} onChange={handleSettingsChange} />
+                            <Textarea id="address" name="address" value={formData.address} onChange={handleChange} />
                         </div>
                     </CardContent>
                     <CardFooter>
@@ -142,7 +134,7 @@ export default function SettingsView({
                             </div>
                             <Switch
                                 id="newOrder"
-                                checked={settingsFormData.notifications.newOrder}
+                                checked={formData.notifications.newOrder}
                                 onCheckedChange={(checked) => handleNotificationChange("newOrder", checked)}
                             />
                         </div>
@@ -153,7 +145,7 @@ export default function SettingsView({
                             </div>
                             <Switch
                                 id="lowStock"
-                                checked={settingsFormData.notifications.lowStock}
+                                checked={formData.notifications.lowStock}
                                 onCheckedChange={(checked) => handleNotificationChange("lowStock", checked)}
                             />
                         </div>
@@ -164,7 +156,7 @@ export default function SettingsView({
                             </div>
                             <Switch
                                 id="customerAccount"
-                                checked={settingsFormData.notifications.customerAccount}
+                                checked={formData.notifications.customerAccount}
                                 onCheckedChange={(checked) => handleNotificationChange("customerAccount", checked)}
                             />
                         </div>
@@ -175,7 +167,7 @@ export default function SettingsView({
                             </div>
                             <Switch
                                 id="marketing"
-                                checked={settingsFormData.notifications.marketing}
+                                checked={formData.notifications.marketing}
                                 onCheckedChange={(checked) => handleNotificationChange("marketing", checked)}
                             />
                         </div>
@@ -241,3 +233,5 @@ export default function SettingsView({
         </div>
     )
 }
+
+export default SettingsView
