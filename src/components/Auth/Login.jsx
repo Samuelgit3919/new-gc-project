@@ -1,25 +1,22 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { IoIosBook } from "react-icons/io";
-// import { BookOpen } from "lucide-react";
-// import { useToast } from "@/hooks/use-toast"; // Uncommented for toast notifications
+import { Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null); // Added error state
-    // const { toast } = useToast(); // Uncommented for toast notifications
+    const [error, setError] = useState(null);
+    const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
-        setError(null); // Reset error state on form submission
+        setError(null);
 
         try {
-
             const response = await fetch("https://bookcompass.onrender.com/api/auth/login", {
                 method: "POST",
                 headers: {
@@ -40,12 +37,9 @@ export default function Login() {
                 return;
             }
             localStorage.setItem("token", data.token);
-            localStorage.setItem("user", JSON.stringify(data.user)); // Store user data in local storage
+            localStorage.setItem("user", JSON.stringify(data.user));
             navigate("/");
-            // navigate("/"); // Redirect to the home page after successful login
-        }
-
-        catch (error) {
+        } catch (error) {
             console.error("Error during login:", error);
             setError("An error occurred. Please try again.");
         } finally {
@@ -53,10 +47,8 @@ export default function Login() {
         }
     };
 
-
-
     return (
-        <div className="flex h-[80vh] flex-col items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100 p-4">
+        <div className="flex h-[100vh] flex-col items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100 p-4">
             <div className="w-full max-w-md space-y-8 rounded-xl bg-white p-8 shadow-lg">
                 {/* Header Section */}
                 <div className="text-center">
@@ -109,15 +101,25 @@ export default function Login() {
                                     Forgot your password?
                                 </Link>
                             </div>
-                            <input
-                                id="password"
-                                name="password"
-                                type="password"
-                                required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="mt-1 block w-full rounded-md border border-slate-300 px-4 py-3 text-slate-700 placeholder-slate-400 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500 sm:text-sm"
-                            />
+                            <div className="relative">
+                                <input
+                                    id="password"
+                                    name="password"
+                                    type={showPassword ? "text" : "password"}
+                                    required
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="mt-1 block w-full rounded-md border border-slate-300 px-4 py-3 pr-12 text-slate-700 placeholder-slate-400 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500 sm:text-sm"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-500 hover:text-slate-700"
+                                    aria-label={showPassword ? "Hide password" : "Show password"}
+                                >
+                                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                </button>
+                            </div>
                         </div>
                     </div>
 

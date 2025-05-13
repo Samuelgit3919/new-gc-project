@@ -1,7 +1,5 @@
-
-
 import { useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { ArrowLeft, Book, CreditCard, LogOut, Package, Settings, User } from "lucide-react"
 import { Button } from "../../components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../components/ui/card"
@@ -12,6 +10,7 @@ import Layout from "../../Layout"
 
 export default function AccountPage() {
     const [activeTab, setActiveTab] = useState("profile")
+    const navigate = useNavigate()
 
     const user = {
         name: "sami",
@@ -80,7 +79,8 @@ export default function AccountPage() {
     }
 
     const handleLogout = () => {
-        console.log("User logged out")
+        localStorage.removeItem('token')
+        navigate('/')
     }
 
     const handleAddToCart = (book) => {

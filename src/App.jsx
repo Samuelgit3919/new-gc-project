@@ -6,7 +6,7 @@ import Register from "./components/Auth/Register"
 import AudioBooks from './ui/Audiobooks/AudioBooks'
 import Ebook from "./ui/Ebook/Ebook"
 import ShopLists from './ui/ShopList/ShopLists'
-import ShopListDetail from './ui/ShopList/ShopListsDetail'
+import ShopListDetail from './ui/ShopList/ShopListDetail'
 import Textbook from "./ui/TextBooks/TextBook"
 import AudioBooksDetail from './ui/Audiobooks/AudioBooksDetail'
 import EbookDetail from './ui/Ebook/EbookDetail'
@@ -19,24 +19,27 @@ import ForgotPassword from './components/Auth/ForgotPassword'
 import ResetPassword from './components/Auth/ResetPassword'
 import Page from './admin/Page'
 
-
 const App = () => {
   return (
     <Router>
       <Routes>
-        <Route index element={<HomeLayout />} />
+        {/* Public Routes */}
         <Route path='/login' element={<Login />} />
         <Route path='/register' element={<Register />} />
         <Route path='/forgotPassword' element={<ForgotPassword />} />
         <Route path='/resetPassword/:token' element={<ResetPassword />} />
         <Route path='/verify-email' element={<VerifyEmail />} />
+
+        {/* Protected Routes */}
         <Route element={<ProtectedRoutes />}>
+          <Route index element={<HomeLayout />} />
           <Route path='/account' element={<Account />} />
           <Route path='/cart' element={<Cart />} />
+          <Route path='/page' element={<Page />} />
         </Route>
 
-        <Route path='/audiobooks' element={<AudioBooks />}
-        />
+        {/* Public Book Routes */}
+        <Route path='/audiobooks' element={<AudioBooks />} />
         <Route path='/audiobooks/:id' element={<AudioBooksDetail />} />
         <Route path='/ebook' element={<Ebook />} />
         <Route path='/ebook/:id' element={<EbookDetail />} />
@@ -44,8 +47,9 @@ const App = () => {
         <Route path='/shopLists/:id' element={<ShopListDetail />} />
         <Route path='/textbooks' element={<Textbook />} />
         <Route path='/textbooks/:id' element={<TextBookDetail />} />
+
+        {/* Fallback */}
         <Route path='*' element={<div>404 Not Found</div>} />
-        <Route path='/page' element={<Page />} />
       </Routes>
     </Router>
   )
