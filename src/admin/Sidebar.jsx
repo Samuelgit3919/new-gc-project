@@ -1,6 +1,6 @@
 "use client"
 
-import { LayoutDashboard, BookOpen, ShoppingCart, Users, Settings, LogOut } from "lucide-react"
+import { LayoutDashboard, BookOpen, ShoppingCart, Settings, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 function Sidebar({ activeView, setActiveView }) {
@@ -8,7 +8,6 @@ function Sidebar({ activeView, setActiveView }) {
         { icon: LayoutDashboard, label: "Dashboard", value: "dashboard" },
         { icon: BookOpen, label: "Books", value: "books" },
         { icon: ShoppingCart, label: "Orders", value: "orders" },
-        { icon: Users, label: "Users", value: "users" },
         { icon: Settings, label: "Settings", value: "settings" },
     ]
 

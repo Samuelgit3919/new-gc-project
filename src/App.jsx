@@ -33,6 +33,7 @@ const App = () => {
         <Route element={<ProtectedRoutes />}>
           <Route path='/account' element={<Account />} />
           <Route path='/cart' element={<Cart />} />
+          <Route path='/page' element={<Page />} />
         </Route>
 
         <Route path='/audiobooks' element={<AudioBooks />}
@@ -45,7 +46,7 @@ const App = () => {
         <Route path='/textbooks' element={<Textbook />} />
         <Route path='/textbooks/:id' element={<TextBookDetail />} />
         <Route path='*' element={<div>404 Not Found</div>} />
-        <Route path='/page' element={<Page />} />
+
       </Routes>
     </Router>
   )

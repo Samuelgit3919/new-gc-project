@@ -6,7 +6,7 @@ import Header from "../admin/Header"
 import DashboardView from "../admin/DashboardView"
 import BookManagementView from "../admin/BookManagementView"
 import OrderManagementView from "../admin/OrderManagementView"
-import UserManagementView from "../admin/UserManagementView"
+// import UserManagementView from "../admin/"
 import SettingsView from "../admin/SettingView"
 // import { mockBooks, mockOrders, mockUsers, defaultSettings } from "@/data/mock-data"
 
@@ -231,14 +231,14 @@ export default function BookstoreAdmin() {
                         />
                     )}
 
-                    {activeView === "users" && (
+                    {/* {activeView === "users" && (
                         <UserManagementView
                             users={users}
                             setUsers={setUsers}
                             searchQuery={searchQuery}
                             setSearchQuery={setSearchQuery}
                         />
-                    )}
+                    )} */}
 
                     {activeView === "settings" && <SettingsView settings={settings} setSettings={setSettings} />}
                 </main>

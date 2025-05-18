@@ -1,14 +1,9 @@
-
 import { Link } from "react-router-dom";
-// import Image from "next/image";
-import React, { useRef } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
-// import { audiobooks } from "./audiobooks";
 import { Button } from "@/components/ui/button";
-import Layout from "../../Layout"
+import Layout from "../../Layout";
 
-
-// Categories data (unchanged)
 const categories = [
     {
         title: "All categories",
@@ -70,67 +65,12 @@ const categories = [
             "https://m.media-amazon.com/images/G/01/Audible/en_US/images/Discover/SmNav_Gen_Hist_3x.jpg",
     },
 ];
-const audiobooks = [
-    {
-        id: 1,
-        title: "The Wedding People",
-        author: "Alison Espach",
-        image:
-            "https://i.pinimg.com/736x/f3/8e/bb/f38ebb2eaee240fbcae7620f4cf5f2ac.jpg",
-    },
-    {
-        id: 2,
-        title: "The Next Conversation",
-        author: "Jefferson Fisher",
-        image:
-            "https://i.pinimg.com/736x/5a/09/ca/5a09ca347396333d07dab50da5336ffb.jpg",
-    },
-    {
-        id: 3,
-        title: "The Housemaid",
-        author: "Freida McFadden",
-        image:
-            "https://i.pinimg.com/736x/db/0f/0a/db0f0a7b0326304e6a077e695b64f487.jpg",
-    },
-    {
-        id: 4,
-        title: "The Serpent and the Wings of Night",
-        author: "Carissa Broadbent",
-        image:
-            "https://i.pinimg.com/736x/02/28/93/0228931c70f8c6f0d2ad58abf3679803.jpg",
-    },
-    {
-        id: 5,
-        title: "Careless People",
-        author: "Sarah Wyn-Williams",
-        image:
-            "https://i.pinimg.com/736x/84/0d/8a/840d8af06ae8f6dfb92bb788aa35bfb1.jpg",
-    },
-    {
-        id: 6,
-        title: "A Very Good Murder",
-        author: "Ronan Farrow",
-        image:
-            "https://i.pinimg.com/736x/27/5f/2b/275f2b3f195dcbc2b9c1d1b3d71e93b9.jpg",
-    },
-    {
-        id: 7,
-        title: "The Wedding People",
-        author: "Alison Espach",
-        image:
-            "https://i.pinimg.com/736x/f3/8e/bb/f38ebb2eaee240fbcae7620f4cf5f2ac.jpg",
-    },
-    {
-        id: 8,
-        title: "The Wedding People",
-        author: "Alison Espach",
-        image:
-            "https://i.pinimg.com/736x/f3/8e/bb/f38ebb2eaee240fbcae7620f4cf5f2ac.jpg",
-    },
-];
 
 const AudioBooks = () => {
     const scrollRef = useRef(null);
+    const [audiobooks, setAudiobooks] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     const scrollLeft = () => {
         if (scrollRef.current) {
@@ -144,9 +84,24 @@ const AudioBooks = () => {
         }
     };
 
+    useEffect(() => {
+        const fetchAudiobooks = async () => {
+            try {
+                const response = await fetch("https://bookcompass.onrender.com/api/books/audiobooks");
+                if (!response.ok) throw new Error("Failed to fetch audiobooks.");
+                const data = await response.json();
+                setAudiobooks(data);
+            } catch (err) {
+                setError(err.message || "An error occurred.");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchAudiobooks();
+    }, []);
+
     return (
         <Layout>
-            {/* AudioBooks Section */}
             <div className="bg-gray-100 text-gray-800 py-10">
                 <div className="max-w-7xl mx-auto px-4">
                     <h2 className="text-3xl md:text-4xl font-bold mb-2">
@@ -168,30 +123,45 @@ const AudioBooks = () => {
                             ref={scrollRef}
                             className="flex overflow-x-auto overflow-y-hidden space-x-4 snap-x snap-mandatory hide-scrollbar"
                         >
-                            {audiobooks.map((book) => (
-                                <Link
-                                    key={book.id}
-                                    to={`/audiobooks/${book.id}`}
-                                    className="flex-shrink-0 w-40 sm:w-48 md:w-52 snap-start transition-transform duration-300"
-                                >
-                                    <img
-                                        src={book.image}
-                                        alt={book.title}
-                                        width={200}
-                                        height={200}
-                                        unoptimized
-                                        className="w-full h-40 sm:h-48 md:h-52 object-cover rounded-md mb-2 shadow-md"
-                                    />
-                                    <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-1 line-clamp-2">
-                                        {book.title}
-                                    </h3>
-                                    <p className="text-xs sm:text-sm text-gray-600">
-                                        By: {book.author}
-                                    </p>
-                                </Link>
-                            ))}
+                            {loading ? (
+                                <div className="flex justify-center items-center min-h-[200px] w-full">
+                                    <p className="text-gray-500">Loading...</p>
+                                </div>
+                            ) : error ? (
+                                <div className="flex justify-center items-center min-h-[200px] w-full">
+                                    <p className="text-red-500">{error}</p>
+                                </div>
+                            ) : audiobooks.length === 0 ? (
+                                <div className="flex justify-center items-center min-h-[200px] w-full">
+                                    <p className="text-gray-500">No audiobooks found.</p>
+                                </div>
+                            ) : (
+                                audiobooks.map((book) => (
+                                    <Link
+                                        key={book.id}
+                                        to={`/audiobooks/${book.id}`}
+                                        className="flex-shrink-0 w-40 sm:w-48 md:w-52 snap-start transition-transform duration-300"
+                                    >
+                                        <img
+                                            src={book.image}
+                                            alt={book.title}
+                                            width={200}
+                                            height={200}
+                                            unoptimized
+                                            className="w-full h-40 sm:h-48 md:h-52 object-cover rounded-md mb-2 shadow-md"
+                                        />
+                                        <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-1 line-clamp-2">
+                                            {book.title}
+                                        </h3>
+                                        <p className="text-xs sm:text-sm text-gray-600">
+                                            By: {book.author}
+                                        </p>
+                                    </Link>
+                                ))
+                            )}
                         </div>
-                        {/* <Button>Click me</Button> */}
+
+
                         <Button
                             onClick={scrollRight}
                             className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-gray-800 bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-opacity z-10"
@@ -202,7 +172,7 @@ const AudioBooks = () => {
                 </div>
             </div>
 
-            {/* ExploreCategories Section */}
+            {/* ExploreCategories Section (unchanged) */}
             <div className="bg-gray-100 text-gray-800 py-10">
                 <div className="max-w-7xl mx-auto px-4">
                     <h2 className="text-3xl md:text-4xl font-bold mb-2">
@@ -237,14 +207,14 @@ const AudioBooks = () => {
             </div>
 
             <style>{`
-        .hide-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-        .hide-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
+                .hide-scrollbar::-webkit-scrollbar {
+                    display: none;
+                }
+                .hide-scrollbar {
+                    -ms-overflow-style: none;
+                    scrollbar-width: none;
+                }
+            `}</style>
         </Layout>
     );
 };

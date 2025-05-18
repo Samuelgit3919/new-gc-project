@@ -1,127 +1,55 @@
 import { Link } from "react-router-dom";
-// import img from "next/img";
-import React from "react";
-// import { ebooksForSales, recentlyAdded, topRatedBooks } from "./eBook";
+import React, { useEffect, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../components/ui/tabs";
-import { Badge } from "../../components/ui/badge"
+import { Badge } from "../../components/ui/badge";
 import {
     Card,
     CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "../../components/ui/card"
-
-import Layout from "../../Layout"
+} from "../../components/ui/card";
+import Layout from "../../Layout";
 import { ChevronRight, Download } from "lucide-react";
 
 const Ebook = () => {
-    const ebooks = [
-        {
-            id: 101,
-            title: "Digital Horizons",
-            author: "Alex Morgan",
-            price: 9.99,
-            cover: "https://picsum.photos/seed/ebook1/450/600",
-            category: "Science Fiction",
-            format: "EPUB, PDF, MOBI",
-            fileSize: "2.4 MB",
-            pages: 342,
-            featured: true,
-        },
-        {
-            id: 102,
-            title: "The Virtual Detective",
-            author: "Samantha Lee",
-            price: 7.99,
-            cover: "https://picsum.photos/seed/ebook2/450/600",
-            category: "Mystery",
-            format: "EPUB, PDF",
-            fileSize: "1.8 MB",
-            pages: 286,
-            featured: false,
-        },
-        {
-            id: 103,
-            title: "Coding Dreams",
-            author: "Coding Dreams",
-            price: 12.99,
-            cover: "https://picsum.photos/seed/ebook3/450/600",
-            category: "Non-Fiction",
-            format: "EPUB, PDF, MOBI",
-            fileSize: "3.2 MB",
-            pages: 412,
-            featured: true,
-        },
-        {
-            id: 104,
-            title: "Digital Marketing Essentials",
-            author: "Emma Thompson",
-            price: 14.99,
-            cover: "https://picsum.photos/seed/ebook4/450/600",
-            category: "Business",
-            format: "EPUB, PDF",
-            fileSize: "4.1 MB",
-            pages: 478,
-            featured: false,
-        },
-        {
-            id: 105,
-            title: "The Social Algorithm",
-            author: "David Chen",
-            price: 8.99,
-            cover: "https://picsum.photos/seed/ebook5/450/600",
-            category: "Fiction",
-            format: "EPUB, MOBI",
-            fileSize: "2.0 MB",
-            pages: 324,
-            featured: true,
-        },
-        {
-            id: 106,
-            title: "Cloud Atlas Reimagined",
-            author: "Michelle Kim",
-            price: 10.99,
-            cover: "https://picsum.photos/seed/ebook6/450/600",
-            category: "Science Fiction",
-            format: "EPUB, PDF",
-            fileSize: "2.7 MB",
-            pages: 356,
-            featured: false,
-        },
-    ]
+    const [ebooks, setEbooks] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    // Categories for ebooks
+    // Fetch ebooks from API
+    useEffect(() => {
+        const fetchEbooks = async () => {
+            try {
+                const response = await fetch("https://bookcompass.onrender.com/api/books/getDigitalBooks");
+                const data = await response.json();
+                setEbooks(data);
+            } catch (error) {
+                console.error("Error fetching eBooks:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchEbooks();
+    }, []);
+
     const ebookCategories = [
-        "Fiction",
-        "Non-Fiction",
-        "Mystery",
-        "Science Fiction",
-        "Business",
-        "Self-Help",
-        "Biography",
-        "Fantasy",
-    ]
-    // Star rating component
-    const StarRating = ({ rating }) => {
-        return (
-            <div className="flex justify-center">
-                {[...Array(5)].map((_, index) => (
-                    <svg
-                        key={index}
-                        className={`w-5 h-5 ${index < rating ? "text-amber-400" : "text-gray-300"
-                            }`}
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                        xmlns="http://www.w3.org/2000/svg"
-                    >
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                ))}
-            </div>
-        );
-    };
+        "Fiction", "Non-Fiction", "Mystery", "Science Fiction",
+        "Business", "Self-Help", "Biography", "Fantasy",
+    ];
+
+    const StarRating = ({ rating }) => (
+        <div className="flex justify-center">
+            {[...Array(5)].map((_, index) => (
+                <svg
+                    key={index}
+                    className={`w-5 h-5 ${index < rating ? "text-amber-400" : "text-gray-300"}`}
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                    xmlns="http://www.w3.org/2000/svg"
+                >
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+            ))}
+        </div>
+    );
 
     return (
         <Layout>
@@ -155,95 +83,63 @@ const Ebook = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-                                {ebooks.map((ebook) => (
-                                    <Link key={ebook.id} to={`/EBook/${ebook.id}`}>
-                                        <Card className="h-full overflow-hidden transition-all hover:shadow-md">
-                                            <div className="relative aspect-[2/3] w-full overflow-hidden">
-                                                <img
-                                                    src={ebook.cover}
-                                                    alt={ebook.title}
-                                                    fill
-                                                    className="object-cover transition-transform hover:scale-105"
-                                                />
-                                                {ebook.featured && (
-                                                    <Badge className="absolute right-2 top-2" variant="secondary">
-                                                        Featured
-                                                    </Badge>
-                                                )}
-                                            </div>
-                                            <CardContent className="p-4">
-                                                <h3 className="line-clamp-1 font-semibold">{ebook.title}</h3>
-                                                <p className="text-sm text-muted-foreground">{ebook.author}</p>
-                                                <div className="mt-2 flex items-center justify-between">
-                                                    <span className="font-medium">${ebook.price.toFixed(2)}</span>
-                                                    <Download className="h-4 w-4 text-muted-foreground" />
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    </Link>
-                                ))}
-                            </div>
-                        </TabsContent>
-
-                        <TabsContent value="featured" className="space-y-6">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-2xl font-bold tracking-tight">Featured E-Books</h2>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-                                {ebooks
-                                    .filter((ebook) => ebook.featured)
-                                    .map((ebook) => (
-                                        <Link key={ebook.id} to={`/ebooks/${ebook.id}`}>
+                            {loading ? (
+                                <p className="text-center text-muted-foreground">Loading eBooks...</p>
+                            ) : (
+                                <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+                                    {ebooks.map((ebook) => (
+                                        <Link key={ebook._id} to={`/EBook/${ebook._id}`}>
                                             <Card className="h-full overflow-hidden transition-all hover:shadow-md">
                                                 <div className="relative aspect-[2/3] w-full overflow-hidden">
                                                     <img
-                                                        src={ebook.cover || "/placeholder.svg"}
+                                                        src={ebook.imageUrl}
                                                         alt={ebook.title}
-                                                        fill
-                                                        className="object-contain transition-transform hover:scale-105"
+                                                        className="object-cover w-full h-full transition-transform hover:scale-105"
                                                     />
-                                                    <Badge className="absolute right-2 top-2" variant="secondary">
-                                                        Featured
-                                                    </Badge>
+                                                    {ebook.featured && (
+                                                        <Badge className="absolute right-2 top-2" variant="secondary">
+                                                            Featured
+                                                        </Badge>
+                                                    )}
                                                 </div>
                                                 <CardContent className="p-4">
                                                     <h3 className="line-clamp-1 font-semibold">{ebook.title}</h3>
                                                     <p className="text-sm text-muted-foreground">{ebook.author}</p>
                                                     <div className="mt-2 flex items-center justify-between">
-                                                        <span className="font-medium">${ebook.price.toFixed(2)}</span>
+                                                        <span className="font-medium">${ebook.price?.toFixed(2)}</span>
                                                         <Download className="h-4 w-4 text-muted-foreground" />
                                                     </div>
+                                                    <StarRating rating={Math.round(ebook.averageRating || 0)} />
                                                 </CardContent>
                                             </Card>
                                         </Link>
                                     ))}
-                            </div>
+                                </div>
+                            )}
                         </TabsContent>
 
-                        {/* Other tab contents would be similar */}
+                        <TabsContent value="featured">
+                            <div className="py-12 text-center text-muted-foreground">
+                                Featured content coming soon
+                            </div>
+                        </TabsContent>
                         <TabsContent value="bestsellers">
-                            <div className="py-12 text-center">
-                                <p className="text-muted-foreground">Bestsellers content coming soon</p>
+                            <div className="py-12 text-center text-muted-foreground">
+                                Bestsellers content coming soon
                             </div>
                         </TabsContent>
-
                         <TabsContent value="new">
-                            <div className="py-12 text-center">
-                                <p className="text-muted-foreground">New releases content coming soon</p>
+                            <div className="py-12 text-center text-muted-foreground">
+                                New releases content coming soon
                             </div>
                         </TabsContent>
-
                         <TabsContent value="deals">
-                            <div className="py-12 text-center">
-                                <p className="text-muted-foreground">Special deals content coming soon</p>
+                            <div className="py-12 text-center text-muted-foreground">
+                                Special deals content coming soon
                             </div>
                         </TabsContent>
                     </Tabs>
 
-
-                    {/* browse by category */}
                     <div className="space-y-4">
                         <h2 className="text-2xl font-bold tracking-tight">Browse by Category</h2>
                         <div className="flex flex-wrap gap-2">
