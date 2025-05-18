@@ -12,7 +12,7 @@ function ProtectedRoutes() {
 
     async function checkUser() {
         if (!token) {
-            navigate("/login");
+            navigate("/");
             setLoading(false);
             return;
         }
