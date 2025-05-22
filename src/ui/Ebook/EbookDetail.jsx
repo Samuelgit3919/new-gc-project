@@ -1,7 +1,5 @@
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Link, useParams } from "react-router-dom"
-// import Image from "next/image"
 import { ArrowLeft, Download, Heart, Share, Star, FileText, Laptop, Smartphone, Tablet } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
@@ -21,227 +19,6 @@ import { Textarea } from "../../components/ui/textarea"
 import Layout from "../../Layout"
 
 export default function EbookDetail() {
-    const ebooksData = [
-        {
-            id: 101,
-            title: "Digital Horizons",
-            author: "Alex Morgan",
-            publisher: "TechPress Publishing",
-            publishDate: "March 15, 2023",
-            isbn: "978-1234567890",
-            pages: 342,
-            fileSize: "2.4 MB",
-            language: "English",
-            description:
-                "In a world dominated by artificial intelligence and virtual reality, one programmer discovers a hidden code that could change the nature of digital consciousness forever. Digital Horizons explores the ethical implications of AI development and the blurred lines between human and machine intelligence in a not-so-distant future.",
-            price: 9.99,
-            rating: 4.6,
-            reviewCount: 87,
-            cover: "https://picsum.photos/seed/ebook1/600/900",
-            categories: ["Science Fiction", "Technology", "Thriller"],
-            formats: ["EPUB", "PDF", "MOBI"],
-            devices: ["Kindle", "Nook", "iPad", "Android", "Desktop"],
-            featured: true,
-            relatedBooks: [102, 103, 105],
-            reviews: [
-                {
-                    id: 1,
-                    name: "Michael R.",
-                    date: "May 15, 2023",
-                    rating: 5,
-                    title: "Engaging and thought-provoking",
-                    content:
-                        "This book exceeded my expectations. The author does an excellent job of exploring complex themes while keeping the narrative engaging. I couldn't put it down and finished it in two days. Highly recommend to anyone interested in this genre.",
-                    verified: true,
-                },
-                {
-                    id: 2,
-                    name: "Sarah T.",
-                    date: "April 28, 2023",
-                    rating: 4,
-                    title: "Great read with minor formatting issues",
-                    content:
-                        "I really enjoyed the content of this e-book. The ideas presented were fascinating and well-researched. However, I did notice some formatting issues on my Kindle, particularly with tables and diagrams. Despite this, I would still recommend it for the quality of the content.",
-                    verified: true,
-                },
-                {
-                    id: 3,
-                    name: "David L.",
-                    date: "April 10, 2023",
-                    rating: 5,
-                    title: "A masterpiece of digital fiction",
-                    content:
-                        "Alex Morgan has created a world that feels both familiar and alien at the same time. The characters are well-developed, and the plot keeps you guessing until the very end. I particularly enjoyed the ethical dilemmas presented throughout the story. Can't wait for the sequel!",
-                    verified: true,
-                },
-                {
-                    id: 4,
-                    name: "Jennifer K.",
-                    date: "March 22, 2023",
-                    rating: 3,
-                    title: "Interesting concept but slow pacing",
-                    content:
-                        "The premise of this book is fascinating, and the author clearly knows their subject matter. However, I found the middle section to drag a bit, and some of the technical explanations were too detailed for my taste. Still, the ending was satisfying and made up for the slower parts.",
-                    verified: false,
-                },
-                {
-                    id: 5,
-                    name: "Robert M.",
-                    date: "March 5, 2023",
-                    rating: 5,
-                    title: "Couldn't put it down!",
-                    content:
-                        "I read this entire book in one sitting. The world-building is exceptional, and the characters feel like real people with complex motivations. The ethical questions raised about AI consciousness will stay with me for a long time. Highly recommended for any sci-fi fan.",
-                    verified: true,
-                },
-            ],
-        },
-        {
-            id: 102,
-            title: "The Virtual Detective",
-            author: "Samantha Lee",
-            publisher: "Mystery Digital",
-            publishDate: "January 5, 2023",
-            isbn: "978-0987654321",
-            pages: 286,
-            fileSize: "1.8 MB",
-            language: "English",
-            description:
-                "When a high-profile tech CEO is found dead in a locked virtual reality room, Detective Maya Chen must navigate both the real and digital worlds to solve the case. As she delves deeper, she discovers a conspiracy that spans multiple realities and threatens to upend the entire VR industry.",
-            price: 7.99,
-            rating: 4.3,
-            reviewCount: 62,
-            cover: "https://picsum.photos/seed/ebook2/600/900",
-            categories: ["Mystery", "Technology", "Thriller"],
-            formats: ["EPUB", "PDF"],
-            devices: ["Kindle", "iPad", "Android", "Desktop"],
-            featured: false,
-            relatedBooks: [101, 105, 106],
-            reviews: [
-                {
-                    id: 1,
-                    name: "Thomas H.",
-                    date: "February 18, 2023",
-                    rating: 4,
-                    title: "A fresh take on detective fiction",
-                    content:
-                        "Samantha Lee has created a compelling mystery that seamlessly blends traditional detective work with cutting-edge technology. Detective Chen is a fantastic protagonist - smart, flawed, and determined. The virtual reality scenes are particularly well-written and immersive.",
-                    verified: true,
-                },
-                {
-                    id: 2,
-                    name: "Lisa R.",
-                    date: "January 30, 2023",
-                    rating: 5,
-                    title: "Couldn't guess the ending!",
-                    content:
-                        "As an avid mystery reader, I pride myself on figuring out whodunit before the reveal. This book completely surprised me! The plot twists were unexpected but made perfect sense in retrospect. The virtual reality setting adds a fresh dimension to the mystery genre.",
-                    verified: true,
-                },
-                {
-                    id: 3,
-                    name: "Mark S.",
-                    date: "January 15, 2023",
-                    rating: 3,
-                    title: "Good but needed more development",
-                    content:
-                        "The concept is innovative and the mystery is intriguing, but I felt some of the supporting characters needed more development. The technology aspects were well-researched and believable. Overall a good read, but it could have been great with a bit more depth.",
-                    verified: false,
-                },
-            ],
-        },
-        {
-            id: 103,
-            title: "Coding Dreams",
-            author: "Jason Wright",
-            publisher: "Mystery Digital",
-            publishDate: "January 5, 2023",
-            isbn: "978-0987654321",
-            pages: 286,
-            fileSize: "1.8 MB",
-            language: "English",
-            description:
-                "When a high-profile tech CEO is found dead in a locked virtual reality room, Detective Maya Chen must navigate both the real and digital worlds to solve the case. As she delves deeper, she discovers a conspiracy that spans multiple realities and threatens to upend the entire VR industry.",
-            price: 12.99,
-            rating: 4.3,
-            reviewCount: 62,
-            cover: "https://picsum.photos/seed/ebook3/450/600",
-            categories: ["Mystery", "Technology", "Thriller"],
-            formats: ["EPUB", "PDF"],
-            devices: ["Kindle", "iPad", "Android", "Desktop"],
-            featured: false,
-            relatedBooks: [101, 105, 106],
-            reviews: [
-                {
-                    id: 1,
-                    name: "Thomas H.",
-                    date: "February 18, 2023",
-                    rating: 4,
-                    title: "A fresh take on detective fiction",
-                    content:
-                        "Samantha Lee has created a compelling mystery that seamlessly blends traditional detective work with cutting-edge technology. Detective Chen is a fantastic protagonist - smart, flawed, and determined. The virtual reality scenes are particularly well-written and immersive.",
-                    verified: true,
-                },
-                {
-                    id: 2,
-                    name: "Lisa R.",
-                    date: "January 30, 2023",
-                    rating: 5,
-                    title: "Couldn't guess the ending!",
-                    content:
-                        "As an avid mystery reader, I pride myself on figuring out whodunit before the reveal. This book completely surprised me! The plot twists were unexpected but made perfect sense in retrospect. The virtual reality setting adds a fresh dimension to the mystery genre.",
-                    verified: true,
-                },
-                {
-                    id: 3,
-                    name: "Mark S.",
-                    date: "January 15, 2023",
-                    rating: 3,
-                    title: "Good but needed more development",
-                    content:
-                        "The concept is innovative and the mystery is intriguing, but I felt some of the supporting characters needed more development. The technology aspects were well-researched and believable. Overall a good read, but it could have been great with a bit more depth.",
-                    verified: false,
-                },
-            ],
-
-        }, {
-            id: 104,
-            title: "Digital Marketing Essentials",
-            author: "Emma Thompson",
-            price: 14.99,
-            cover: "https://picsum.photos/seed/ebook4/450/600",
-            categories: ["Business", "Marketing"],
-            formats: ["PDF", "EPUB"],
-            devices: ["Kindle", "iPad", "Android"],
-            description:
-                "A comprehensive guide to digital marketing strategies, tools, and techniques. This e-book covers everything from SEO to social media marketing, providing practical tips and case studies to help you succeed in the digital landscape.",
-            rating: 4.5,
-            reviewCount: 45,
-            reviews: [
-                {
-                    id: 1,
-                    name: "Alice B.",
-                    date: "February 10, 2023",
-                    rating: 5,
-                    title: "A must-read for marketers!",
-                    content:
-                        "This e-book is packed with valuable insights and practical tips. I learned so much about digital marketing strategies that I can apply to my own business. Highly recommend!",
-                    verified: true,
-                },
-                {
-                    id: 2,
-                    name: "John D.",
-                    date: "January 20, 2023",
-                    rating: 4,
-                    title: "Great resource for beginners",
-                    content:
-                        "As someone new to digital marketing, I found this e-book to be very informative. The explanations are clear and easy to understand. I especially liked the case studies that illustrate the concepts.",
-                    verified: false,
-                },
-            ],
-        }
-
-    ]
     const [isWishlisted, setIsWishlisted] = useState(false)
     const [reviewDialogOpen, setReviewDialogOpen] = useState(false)
     const [reviewFormData, setReviewFormData] = useState({
@@ -252,37 +29,75 @@ export default function EbookDetail() {
         review: "",
     })
     const [visibleReviews, setVisibleReviews] = useState(2)
+    const [ebook, setEbook] = useState(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
+    const [relatedEbooks, setRelatedEbooks] = useState([])
 
     const { id } = useParams()
-    const ebookId = parseInt(id) // Convert string ID to number
-    const ebook = ebooksData.find(book => book.id === ebookId)
 
+    useEffect(() => {
+        const fetchEbookData = async () => {
+            try {
+                setLoading(true)
+                // Fetch the main ebook data
+                const response = await fetch(`https://bookcompass.onrender.com/api/books/singleBook/${id}`)
 
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch ebook: ${response.status}`)
+                }
 
+                const data = await response.json()
+                if (!data) {
+                    throw new Error("Ebook data is empty")
+                }
+                setEbook(data)
 
+                // If there are related books, fetch their data
+                if (data.relatedBooks && data.relatedBooks.length > 0) {
+                    const relatedPromises = data.relatedBooks.map(bookId =>
+                        fetch(`https://bookcompass.onrender.com/api/books/singleBook/${bookId}`)
+                            .then(res => {
+                                if (!res.ok) return null
+                                return res.json()
+                            })
+                            .catch(() => null)
+                    )
 
-    if (!ebook) {
-        return <div className="text-center">E-book not found</div>
-    }
+                    const relatedResults = await Promise.all(relatedPromises)
+                    setRelatedEbooks(relatedResults.filter(book => book !== null))
+                }
 
-    // Simple notification function to replace useToast
+            } catch (err) {
+                setError(err.message)
+                console.error("Error fetching ebook data:", err)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchEbookData()
+    }, [id])
+
     const showNotification = (title, description, type = "info") => {
         if (typeof window !== "undefined") {
             alert(`${title}\n${description}`)
         }
-        // In a real app, you might want to use a proper notification system here
         console.log(`[${type.toUpperCase()}] ${title}: ${description}`)
     }
 
     const handleAddToCart = () => {
-        showNotification("Added to cart", `${ebook.title} - $${ebook.price.toFixed(2)}`)
+        if (!ebook) return
+        showNotification("Added to cart", `${ebook.title} - $${(ebook.price || 0).toFixed(2)}`)
     }
 
     const handleBuyNow = () => {
+        if (!ebook) return
         showNotification("Proceeding to checkout", `Purchasing ${ebook.title}`)
     }
 
     const handleToggleWishlist = () => {
+        if (!ebook) return
         setIsWishlisted(!isWishlisted)
         showNotification(
             isWishlisted ? "Removed from wishlist" : "Added to wishlist",
@@ -291,14 +106,37 @@ export default function EbookDetail() {
     }
 
     const handleShare = () => {
-        showNotification("Share link copied", "E-book link has been copied to clipboard")
+        if (!ebook) return
+        if (navigator.share) {
+            navigator.share({
+                title: ebook.title,
+                text: `Check out this ebook: ${ebook.title} by ${ebook.author}`,
+                url: window.location.href,
+            }).catch(err => {
+                console.error('Error sharing:', err)
+                copyToClipboard()
+            })
+        } else {
+            copyToClipboard()
+        }
+    }
+
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(window.location.href)
+            .then(() => showNotification("Link copied", "E-book link has been copied to clipboard"))
+            .catch(err => {
+                console.error('Failed to copy:', err)
+                showNotification("Error", "Failed to copy link to clipboard", "error")
+            })
     }
 
     const handleDownloadSample = () => {
+        if (!ebook) return
         showNotification("Sample downloaded", `Sample of ${ebook.title} is being downloaded`)
     }
 
     const handleLoadMoreReviews = () => {
+        if (!ebook?.reviews) return
         setVisibleReviews(ebook.reviews.length)
         showNotification("All reviews loaded", "Showing all reviews for this e-book")
     }
@@ -318,7 +156,7 @@ export default function EbookDetail() {
         }))
     }
 
-    const handleSubmitReview = (e) => {
+    const handleSubmitReview = async (e) => {
         e.preventDefault()
 
         if (!reviewFormData.name || !reviewFormData.email || !reviewFormData.title || !reviewFormData.review) {
@@ -326,22 +164,91 @@ export default function EbookDetail() {
             return
         }
 
-        showNotification(
-            "Review submitted",
-            "Thank you for your feedback! Your review will be published after moderation."
-        )
+        try {
+            const response = await fetch(`https://bookcompass.onrender.com/api/books/${id}/reviews`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(reviewFormData),
+            })
 
-        setReviewDialogOpen(false)
-        setReviewFormData({
-            name: "",
-            email: "",
-            rating: 5,
-            title: "",
-            review: "",
-        })
+            if (!response.ok) {
+                throw new Error(`Failed to submit review: ${response.status}`)
+            }
+
+            showNotification(
+                "Review submitted",
+                "Thank you for your feedback! Your review will be published after moderation."
+            )
+
+            // Refresh the ebook data
+            const updatedResponse = await fetch(`https://bookcompass.onrender.com/api/books/singleBook/${id}`)
+            if (!updatedResponse.ok) {
+                throw new Error('Failed to fetch updated ebook data')
+            }
+            const updatedData = await updatedResponse.json()
+            setEbook(updatedData)
+
+            setReviewDialogOpen(false)
+            setReviewFormData({
+                name: "",
+                email: "",
+                rating: 5,
+                title: "",
+                review: "",
+            })
+        } catch (err) {
+            console.error('Error submitting review:', err)
+            showNotification("Error", "Failed to submit review. Please try again later.", "error")
+        }
     }
 
-    const relatedEbooks = ebook.relatedBooks ? ebook.relatedBooks.map((id) => ebooksData[id]).filter(Boolean) : []
+    if (loading) {
+        return (
+            <Layout>
+                <div className="container px-4 py-8 md:px-6 md:py-12 text-center">
+                    <div className="animate-pulse space-y-4">
+                        <div className="h-8 bg-gray-200 rounded w-1/4 mx-auto"></div>
+                        <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+                        <div className="h-64 bg-gray-200 rounded w-full max-w-md mx-auto"></div>
+                    </div>
+                </div>
+            </Layout>
+        )
+    }
+
+    if (error) {
+        return (
+            <Layout>
+                <div className="container px-4 py-8 md:px-6 md:py-12 text-center">
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
+                        <h2 className="text-xl font-bold text-red-600 mb-2">Error Loading E-book</h2>
+                        <p className="text-red-500 mb-4">{error}</p>
+                        <Button asChild variant="outline">
+                            <Link to="/EBook">Back to E-Books</Link>
+                        </Button>
+                    </div>
+                </div>
+            </Layout>
+        )
+    }
+
+    if (!ebook) {
+        return (
+            <Layout>
+                <div className="container px-4 py-8 md:px-6 md:py-12 text-center">
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 max-w-md mx-auto">
+                        <h2 className="text-xl font-bold text-yellow-600 mb-2">E-book Not Found</h2>
+                        <p className="text-yellow-700 mb-4">The requested e-book could not be found.</p>
+                        <Button asChild variant="outline">
+                            <Link to="/EBook">Browse Available E-Books</Link>
+                        </Button>
+                    </div>
+                </div>
+            </Layout>
+        )
+    }
 
     return (
         <Layout>
@@ -360,19 +267,20 @@ export default function EbookDetail() {
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
                     {/* E-Book Cover */}
                     <div className="flex justify-center md:col-span-1">
-                        <div className="flex justify-center md:col-span-1">
-                            <div className="relative aspect-[2/3] w-full max-w-[300px] overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
-                                <img
-                                    src={ebook.cover}
-                                    alt={`${ebook.title} cover`}
-                                    className="w-full h-full object-cover"
-                                />
-                                {ebook.featured && (
-                                    <Badge className="absolute right-2 top-2" variant="secondary">
-                                        Featured
-                                    </Badge>
-                                )}
-                            </div>
+                        <div className="relative aspect-[2/3] w-full max-w-[300px] overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
+                            <img
+                                src={ebook.cover || "/placeholder-cover.jpg"}
+                                alt={`${ebook.title} cover`}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                    e.target.src = "/placeholder-cover.jpg"
+                                }}
+                            />
+                            {ebook.featured && (
+                                <Badge className="absolute right-2 top-2" variant="secondary">
+                                    Featured
+                                </Badge>
+                            )}
                         </div>
                     </div>
 
@@ -384,7 +292,7 @@ export default function EbookDetail() {
                                 <div className="flex flex-wrap items-start justify-between gap-2">
                                     <div>
                                         <h1 className="text-3xl font-bold tracking-tight md:text-4xl">{ebook.title}</h1>
-                                        <p className="text-xl text-muted-foreground">by {ebook.author}</p>
+                                        <p className="text-xl text-muted-foreground">by {ebook.author || "Unknown Author"}</p>
                                     </div>
                                     <div className="flex gap-2">
                                         <Button
@@ -407,18 +315,18 @@ export default function EbookDetail() {
                                     {[...Array(5)].map((_, i) => (
                                         <Star
                                             key={i}
-                                            className={`h-5 w-5 ${i < Math.floor(ebook.rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                                            className={`h-5 w-5 ${i < Math.floor(ebook.rating || 0) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
                                                 }`}
                                         />
                                     ))}
                                     <span className="ml-2 text-sm font-medium">
-                                        {ebook.rating} ({ebook.reviewCount} reviews)
+                                        {(ebook.rating || 0).toFixed(1)} ({ebook.reviewCount || 0} reviews)
                                     </span>
                                 </div>
 
                                 {/* Categories */}
                                 <div className="mt-4 flex flex-wrap gap-2">
-                                    {ebook.categories.map((category) => (
+                                    {ebook.categories?.map((category) => (
                                         <Link to={`/ebooks?category=${encodeURIComponent(category)}`} key={category}>
                                             <Badge variant="secondary">{category}</Badge>
                                         </Link>
@@ -431,7 +339,7 @@ export default function EbookDetail() {
                             {/* Price and actions */}
                             <div className="space-y-4">
                                 <div className="flex items-baseline justify-between">
-                                    <span className="text-2xl font-bold">${ebook.price.toFixed(2)}</span>
+                                    <span className="text-2xl font-bold">${(ebook.price || 0).toFixed(2)}</span>
                                     <span className="text-sm text-muted-foreground">Digital download • Instant delivery</span>
                                 </div>
 
@@ -452,15 +360,15 @@ export default function EbookDetail() {
                                 <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
                                     <div className="flex items-center">
                                         <FileText className="mr-1 h-4 w-4" />
-                                        <span>{ebook.formats.join(", ")}</span>
+                                        <span>{(ebook.formats || []).join(", ") || "Multiple formats"}</span>
                                     </div>
                                     <div className="flex items-center">
                                         <Laptop className="mr-1 h-4 w-4" />
-                                        <span>{ebook.fileSize}</span>
+                                        <span>{ebook.fileSize || "N/A"}</span>
                                     </div>
                                     <div className="flex items-center">
                                         <Smartphone className="mr-1 h-4 w-4" />
-                                        <span>{ebook.pages} pages</span>
+                                        <span>{ebook.pages || 0} pages</span>
                                     </div>
                                 </div>
                             </div>
@@ -473,33 +381,33 @@ export default function EbookDetail() {
                                     <TabsTrigger value="devices">Compatible Devices</TabsTrigger>
                                 </TabsList>
                                 <TabsContent value="description" className="mt-4 space-y-4">
-                                    <p className="text-muted-foreground">{ebook.description}</p>
+                                    <p className="text-muted-foreground">{ebook.description || "No description available."}</p>
                                 </TabsContent>
                                 <TabsContent value="details" className="mt-4">
                                     <div className="grid grid-cols-2 gap-4 text-sm">
                                         <div className="space-y-1">
                                             <p className="font-medium">Publisher</p>
-                                            <p className="text-muted-foreground">{ebook.publisher}</p>
+                                            <p className="text-muted-foreground">{ebook.publisher || "N/A"}</p>
                                         </div>
                                         <div className="space-y-1">
                                             <p className="font-medium">Publication Date</p>
-                                            <p className="text-muted-foreground">{ebook.publishDate}</p>
+                                            <p className="text-muted-foreground">{ebook.publishDate || "N/A"}</p>
                                         </div>
                                         <div className="space-y-1">
                                             <p className="font-medium">ISBN</p>
-                                            <p className="text-muted-foreground">{ebook.isbn}</p>
+                                            <p className="text-muted-foreground">{ebook.isbn || "N/A"}</p>
                                         </div>
                                         <div className="space-y-1">
                                             <p className="font-medium">Pages</p>
-                                            <p className="text-muted-foreground">{ebook.pages}</p>
+                                            <p className="text-muted-foreground">{ebook.pages || "N/A"}</p>
                                         </div>
                                         <div className="space-y-1">
                                             <p className="font-medium">Language</p>
-                                            <p className="text-muted-foreground">{ebook.language}</p>
+                                            <p className="text-muted-foreground">{ebook.language || "English"}</p>
                                         </div>
                                         <div className="space-y-1">
                                             <p className="font-medium">File Size</p>
-                                            <p className="text-muted-foreground">{ebook.fileSize}</p>
+                                            <p className="text-muted-foreground">{ebook.fileSize || "N/A"}</p>
                                         </div>
                                     </div>
                                 </TabsContent>
@@ -509,18 +417,18 @@ export default function EbookDetail() {
                                             This e-book is compatible with the following devices and applications:
                                         </p>
                                         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-                                            {ebook.devices.map((device) => (
+                                            {(ebook.devices || ["Kindle", "Tablet", "Smartphone", "Computer"]).map((device) => (
                                                 <div
                                                     key={device}
                                                     className="flex flex-col items-center rounded-lg border border-gray-200 p-4 text-center dark:border-gray-800"
                                                 >
-                                                    {device === "Kindle" ? (
+                                                    {device.toLowerCase().includes("kindle") ? (
                                                         <Tablet className="h-8 w-8 text-primary" />
-                                                    ) : device === "Nook" ? (
+                                                    ) : device.toLowerCase().includes("nook") ? (
                                                         <Tablet className="h-8 w-8 text-primary" />
-                                                    ) : device === "iPad" ? (
+                                                    ) : device.toLowerCase().includes("ipad") ? (
                                                         <Tablet className="h-8 w-8 text-primary" />
-                                                    ) : device === "Android" ? (
+                                                    ) : device.toLowerCase().includes("android") ? (
                                                         <Smartphone className="h-8 w-8 text-primary" />
                                                     ) : (
                                                         <Laptop className="h-8 w-8 text-primary" />
@@ -549,15 +457,18 @@ export default function EbookDetail() {
                                 >
                                     <div className="aspect-[2/3] w-full overflow-hidden">
                                         <img
-                                            src={relatedEbook.cover}
+                                            src={relatedEbook.cover || "/placeholder-cover.jpg"}
                                             alt={`${relatedEbook.title} cover`}
                                             className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                                            onError={(e) => {
+                                                e.target.src = "/placeholder-cover.jpg"
+                                            }}
                                         />
                                     </div>
                                     <div className="p-3">
                                         <h3 className="line-clamp-1 font-semibold">{relatedEbook.title}</h3>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">{relatedEbook.author}</p>
-                                        <p className="mt-1 font-medium">${relatedEbook.price.toFixed(2)}</p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">{relatedEbook.author || "Unknown Author"}</p>
+                                        <p className="mt-1 font-medium">${(relatedEbook.price || 0).toFixed(2)}</p>
                                     </div>
                                 </Link>
                             ))}
@@ -575,35 +486,42 @@ export default function EbookDetail() {
                     </div>
 
                     <div className="mt-6 space-y-6">
-                        {ebook.reviews &&
-                            ebook.reviews.slice(0, visibleReviews).map((review) => (
-                                <div key={review.id} className="rounded-lg border border-gray-200 p-6 dark:border-gray-800">
-                                    <div className="flex items-start justify-between">
-                                        <div>
-                                            <div className="flex items-center space-x-1">
-                                                {[...Array(5)].map((_, i) => (
-                                                    <Star
-                                                        key={i}
-                                                        className={`h-4 w-4 ${i < review.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
-                                                    />
-                                                ))}
+                        {ebook.reviews?.length > 0 ? (
+                            <>
+                                {ebook.reviews.slice(0, visibleReviews).map((review) => (
+                                    <div key={review.id} className="rounded-lg border border-gray-200 p-6 dark:border-gray-800">
+                                        <div className="flex items-start justify-between">
+                                            <div>
+                                                <div className="flex items-center space-x-1">
+                                                    {[...Array(5)].map((_, i) => (
+                                                        <Star
+                                                            key={i}
+                                                            className={`h-4 w-4 ${i < review.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
+                                                        />
+                                                    ))}
+                                                </div>
+                                                <h3 className="mt-2 font-semibold">{review.title}</h3>
+                                                <p className="mt-1 text-sm text-muted-foreground">
+                                                    By <span className="font-medium">{review.name}</span> on {review.date}
+                                                </p>
                                             </div>
-                                            <h3 className="mt-2 font-semibold">{review.title}</h3>
-                                            <p className="mt-1 text-sm text-muted-foreground">
-                                                By <span className="font-medium">{review.name}</span> on {review.date}
-                                            </p>
+                                            {review.verified && <Badge variant="outline">Verified Purchase</Badge>}
                                         </div>
-                                        {review.verified && <Badge variant="outline">Verified Purchase</Badge>}
+                                        <p className="mt-4 text-sm text-muted-foreground">{review.content}</p>
                                     </div>
-                                    <p className="mt-4 text-sm text-muted-foreground">{review.content}</p>
-                                </div>
-                            ))}
+                                ))}
 
-                        {ebook.reviews && visibleReviews < ebook.reviews.length && (
-                            <div className="flex justify-center">
-                                <Button variant="outline" onClick={handleLoadMoreReviews}>
-                                    Load More Reviews ({ebook.reviews.length - visibleReviews} remaining)
-                                </Button>
+                                {visibleReviews < ebook.reviews.length && (
+                                    <div className="flex justify-center">
+                                        <Button variant="outline" onClick={handleLoadMoreReviews}>
+                                            Load More Reviews ({ebook.reviews.length - visibleReviews} remaining)
+                                        </Button>
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <div className="rounded-lg border border-gray-200 p-6 text-center dark:border-gray-800">
+                                <p className="text-muted-foreground">No reviews yet. Be the first to review this e-book!</p>
                             </div>
                         )}
                     </div>
@@ -621,7 +539,7 @@ export default function EbookDetail() {
 
                         <form onSubmit={handleSubmitReview} className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="name">Your Name</Label>
+                                <Label htmlFor="name">Your Name *</Label>
                                 <Input
                                     id="name"
                                     name="name"
@@ -633,7 +551,7 @@ export default function EbookDetail() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="email">Email Address</Label>
+                                <Label htmlFor="email">Email Address *</Label>
                                 <Input
                                     id="email"
                                     name="email"
@@ -647,7 +565,7 @@ export default function EbookDetail() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label>Rating</Label>
+                                <Label>Rating *</Label>
                                 <div className="flex items-center space-x-1">
                                     {[1, 2, 3, 4, 5].map((rating) => (
                                         <button
@@ -655,6 +573,7 @@ export default function EbookDetail() {
                                             type="button"
                                             onClick={() => handleRatingChange(rating)}
                                             className="focus:outline-none"
+                                            aria-label={`Rate ${rating} out of 5`}
                                         >
                                             <Star
                                                 className={`h-6 w-6 ${rating <= reviewFormData.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
@@ -666,7 +585,7 @@ export default function EbookDetail() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="title">Review Title</Label>
+                                <Label htmlFor="title">Review Title *</Label>
                                 <Input
                                     id="title"
                                     name="title"
@@ -678,7 +597,7 @@ export default function EbookDetail() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="review">Your Review</Label>
+                                <Label htmlFor="review">Your Review *</Label>
                                 <Textarea
                                     id="review"
                                     name="review"

@@ -51,6 +51,26 @@ const Ebook = () => {
         </div>
     );
 
+    // Skeleton loading component
+    const EbookSkeleton = () => (
+        <Card className="h-full overflow-hidden">
+            <div className="relative aspect-[2/3] w-full overflow-hidden bg-gray-200 animate-pulse"></div>
+            <CardContent className="p-4 space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+                <div className="flex justify-between mt-2">
+                    <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-4 animate-pulse"></div>
+                </div>
+                <div className="flex justify-center gap-1 mt-2">
+                    {[...Array(5)].map((_, i) => (
+                        <div key={i} className="h-4 w-4 bg-gray-200 rounded-full animate-pulse"></div>
+                    ))}
+                </div>
+            </CardContent>
+        </Card>
+    );
+
     return (
         <Layout>
             <div className="container px-4 py-8 md:px-6 md:py-12">
@@ -83,11 +103,15 @@ const Ebook = () => {
                                 </div>
                             </div>
 
-                            {loading ? (
-                                <p className="text-center text-muted-foreground">Loading eBooks...</p>
-                            ) : (
-                                <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-                                    {ebooks.map((ebook) => (
+                            <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+                                {loading ? (
+                                    // Show skeleton loaders while loading
+                                    Array.from({ length: 12 }).map((_, index) => (
+                                        <EbookSkeleton key={index} />
+                                    ))
+                                ) : (
+                                    // Show actual ebook cards when loaded
+                                    ebooks.map((ebook) => (
                                         <Link key={ebook._id} to={`/EBook/${ebook._id}`}>
                                             <Card className="h-full overflow-hidden transition-all hover:shadow-md">
                                                 <div className="relative aspect-[2/3] w-full overflow-hidden">
@@ -95,6 +119,9 @@ const Ebook = () => {
                                                         src={ebook.imageUrl}
                                                         alt={ebook.title}
                                                         className="object-cover w-full h-full transition-transform hover:scale-105"
+                                                        onError={(e) => {
+                                                            e.target.src = "/placeholder-cover.jpg"
+                                                        }}
                                                     />
                                                     {ebook.featured && (
                                                         <Badge className="absolute right-2 top-2" variant="secondary">
@@ -106,16 +133,16 @@ const Ebook = () => {
                                                     <h3 className="line-clamp-1 font-semibold">{ebook.title}</h3>
                                                     <p className="text-sm text-muted-foreground">{ebook.author}</p>
                                                     <div className="mt-2 flex items-center justify-between">
-                                                        <span className="font-medium">${ebook.price?.toFixed(2)}</span>
+                                                        <span className="font-medium">${(ebook.price || 0).toFixed(2)}</span>
                                                         <Download className="h-4 w-4 text-muted-foreground" />
                                                     </div>
                                                     <StarRating rating={Math.round(ebook.averageRating || 0)} />
                                                 </CardContent>
                                             </Card>
                                         </Link>
-                                    ))}
-                                </div>
-                            )}
+                                    ))
+                                )}
+                            </div>
                         </TabsContent>
 
                         <TabsContent value="featured">
