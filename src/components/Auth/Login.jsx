@@ -31,6 +31,7 @@ export default function Login() {
             });
 
             const data = await response.json();
+            console.log(data)
             if (!response.ok) {
                 console.error("Login failed:", data.message);
                 setError(data.message || "Login failed. Please try again.");
@@ -38,6 +39,9 @@ export default function Login() {
             }
             localStorage.setItem("token", data.token);
             localStorage.setItem("user", JSON.stringify(data.user));
+            console.log(data.user)
+            console.log(data.user._id)
+            localStorage.setItem("userId", JSON.stringify(data.userId));
             navigate("/");
         } catch (error) {
             console.error("Error during login:", error);

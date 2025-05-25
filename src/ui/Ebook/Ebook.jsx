@@ -8,6 +8,7 @@ import {
 } from "../../components/ui/card";
 import Layout from "../../Layout";
 import { ChevronRight, Download } from "lucide-react";
+// import axios from "axios";
 
 const Ebook = () => {
     const [ebooks, setEbooks] = useState([]);
@@ -19,6 +20,7 @@ const Ebook = () => {
             try {
                 const response = await fetch("https://bookcompass.onrender.com/api/books/getDigitalBooks");
                 const data = await response.json();
+                console.log(data)
                 setEbooks(data);
             } catch (error) {
                 console.error("Error fetching eBooks:", error);

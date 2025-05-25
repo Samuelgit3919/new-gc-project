@@ -1,78 +1,36 @@
 import { Link } from "react-router-dom";
-import React, { useState } from 'react';
+import React from 'react';
 import { AiFillMessage } from 'react-icons/ai';
 import { CgProfile } from 'react-icons/cg';
 import { IoIosBook } from 'react-icons/io';
 
 const Lower = () => {
-    const [menuOpen, setMenuOpen] = useState(false);
-
-    // Get current path (alternative to Next.js usePathname)
     const currentPath = window.location.pathname;
 
     const links = [
-        {
-            label: "Home",
-            href: "/",
-        },
-        {
-            label: "EBooks",
-            href: "/EBook",
-        },
-        {
-            label: "ShopLists",
-            href: "/shopLists",
-        },
-        {
-            label: "Textbooks",
-            href: "/textbooks",
-        },
-        {
-            label: "Audiobooks",
-            href: "/audiobooks",
-        },
+        { label: "Home", href: "/", icon: <IoIosBook className="inline ml-1" /> },
+        { label: "EBooks", href: "/EBook", icon: <IoIosBook className="inline ml-1" /> },
+        { label: "ShopLists", href: "/shopLists", icon: <AiFillMessage className="inline ml-1" /> },
+        { label: "Textbooks", href: "/textbooks", icon: <IoIosBook className="inline ml-1" /> },
+        { label: "Audiobooks", href: "/audiobooks", icon: <CgProfile className="inline ml-1" /> },
     ];
 
-    const toggleMenu = () => {
-        setMenuOpen(!menuOpen);
-    };
-
     return (
-        <nav className="bg-gray-100 p-2">
-            <div className="flex justify-between md:justify-around items-center mx-2">
-                <div className="hidden md:flex gap-5">
+        <nav className="bg-gray-100 p-2 sm:p-3 shadow-sm">
+            <div className="container mx-auto flex justify-center items-center">
+                <div className="flex flex-wrap gap-1 sm:gap-4 md:gap-6">
                     {links.map((link) => (
                         <Link
                             to={link.href}
                             key={link.label}
-                            className={`text-gray-600 block py-2 hover:text-gray-900 hover:rounded-md ${currentPath === link.href ? "text-gray-900 font-medium" : ""
-                                }`}
-                            onClick={toggleMenu}
+                            className={`flex items-center px-3 py-2 text-xs sm:text-sm md:text-base font-medium rounded-md transition-colors ${currentPath === link.href
+                                ? "bg-blue-50 text-blue-600"
+                                : "text-gray-600 hover:text-gray-900 hover:bg-gray-200"
+                                } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                            aria-current={currentPath === link.href ? "page" : undefined}
                         >
                             {link.label}
-                            {link.icon && <span className="ml-1">{link.icon}</span>}
-                        </Link>
-                    ))}
-                </div>
-
-                {/* Mobile menu button would go here */}
-            </div>
-
-            {/* Mobile menu */}
-            <div
-                className={`fixed top-0 right-0 h-full w-2/4 bg-gray-100 z-50 transition-transform ${menuOpen ? "translate-x-0" : "translate-x-full"
-                    } md:hidden`}
-            >
-                <div className="flex flex-col items-start p-4">
-                    {links.map((link) => (
-                        <Link
-                            to={link.href}
-                            key={link.label}
-                            className={`text-purple-600 block py-2 w-full hover:text-gray-900 hover:bg-teal-100 hover:rounded-md hover:p-2 ${currentPath === link.href ? "text-gray-900 font-medium" : ""
-                                }`}
-                            onClick={toggleMenu}
-                        >
-                            {link.label}
+                            {/* <span className="ml-1 text-sm sm:text-base">{link.icon}</span> */}
                         </Link>
                     ))}
                 </div>

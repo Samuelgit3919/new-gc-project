@@ -18,6 +18,9 @@ import TextBookDetail from './ui/TextBooks/TextBookDetail'
 import ForgotPassword from './components/Auth/ForgotPassword'
 import ResetPassword from './components/Auth/ResetPassword'
 import Page from './admin/Page'
+import FAQPage from './ui/Help/FAQPage'
+import ContactPage from './ui/Help/ContactPage'
+import TermsOfUse from './ui/Help/TermsOfUse'
 
 
 const App = () => {
@@ -45,6 +48,9 @@ const App = () => {
         <Route path='/shopLists/:id' element={<ShopListDetail />} />
         <Route path='/textbooks' element={<Textbook />} />
         <Route path='/textbooks/:id' element={<TextBookDetail />} />
+        <Route path='/FaqPage' element={< FAQPage />} />
+        <Route path='/contactPage' element={<ContactPage />} />
+        <Route path='/termsOfUse' element={<TermsOfUse />} />
         <Route path='*' element={<div>404 Not Found</div>} />
 
       </Routes>

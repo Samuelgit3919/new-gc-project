@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import React, { useRef, useEffect, useState } from "react";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
-import { Button } from "@/components/ui/button";
+import { Button } from "../../components/ui/button";
 import Layout from "../../Layout";
 
 const categories = [
@@ -74,13 +74,13 @@ const AudioBooks = () => {
 
     const scrollLeft = () => {
         if (scrollRef.current) {
-            scrollRef.current.scrollBy({ left: -300, behavior: "smooth" });
+            scrollRef.current.scrollBy({ left: -200, behavior: "smooth" });
         }
     };
 
     const scrollRight = () => {
         if (scrollRef.current) {
-            scrollRef.current.scrollBy({ left: 300, behavior: "smooth" });
+            scrollRef.current.scrollBy({ left: 200, behavior: "smooth" });
         }
     };
 
@@ -102,104 +102,111 @@ const AudioBooks = () => {
 
     return (
         <Layout>
-            <div className="bg-gray-100 text-gray-800 py-10">
-                <div className="max-w-7xl mx-auto px-4">
-                    <h2 className="text-3xl md:text-4xl font-bold mb-2">
+            {/* Audiobooks Section */}
+            <div className="bg-gray-100 text-gray-800 py-6 sm:py-8 md:py-10">
+                <div className="max-w-7xl mx-auto px-3 sm:px-4">
+                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">
                         We've got what everyone's listening to
                     </h2>
-                    <p className="text-gray-400 mb-6">
+                    <p className="text-gray-400 text-sm sm:text-base mb-4 sm:mb-6">
                         Bestsellers, new releases. That story you've been waiting for.
                     </p>
 
                     <div className="relative">
                         <button
                             onClick={scrollLeft}
-                            className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-gray-800 bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-opacity z-10"
+                            className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-gray-800 bg-opacity-50 text-white p-3 sm:p-4 rounded-full hover:bg-opacity-75 transition-opacity z-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            aria-label="Scroll left"
                         >
-                            <FaChevronLeft className="text-xl" />
+                            <FaChevronLeft className="text-lg sm:text-xl" />
                         </button>
 
                         <div
                             ref={scrollRef}
-                            className="flex overflow-x-auto overflow-y-hidden space-x-4 snap-x snap-mandatory hide-scrollbar"
+                            className="flex overflow-x-auto overflow-y-hidden space-x-3 sm:space-x-4 snap-x snap-mandatory hide-scrollbar scroll-smooth"
                         >
                             {loading ? (
-                                <div className="flex justify-center items-center min-h-[200px] w-full">
-                                    <p className="text-gray-500">Loading...</p>
+                                <div className="flex justify-center items-center min-h-[150px] sm:min-h-[200px] w-full">
+                                    <p className="text-gray-500 text-sm sm:text-base">Loading...</p>
                                 </div>
                             ) : error ? (
-                                <div className="flex justify-center items-center min-h-[200px] w-full">
-                                    <p className="text-red-500">{error}</p>
+                                <div className="flex justify-center items-center min-h-[150px] sm:min-h-[200px] w-full">
+                                    <p className="text-red-500 text-sm sm:text-base">{error}</p>
                                 </div>
                             ) : audiobooks.length === 0 ? (
-                                <div className="flex justify-center items-center min-h-[200px] w-full">
-                                    <p className="text-gray-500">No audiobooks found.</p>
+                                <div className="flex justify-center items-center min-h-[150px] sm:min-h-[200px] w-full">
+                                    <p className="text-gray-500 text-sm sm:text-base">No audiobooks found.</p>
                                 </div>
                             ) : (
                                 audiobooks.map((book) => (
                                     <Link
                                         key={book.id}
                                         to={`/audiobooks/${book.id}`}
-                                        className="flex-shrink-0 w-40 sm:w-48 md:w-52 snap-start transition-transform duration-300"
+                                        className="flex-shrink-0 w-32 sm:w-40 md:w-48 lg:w-52 snap-start transition-transform duration-300"
                                     >
                                         <img
                                             src={book.image}
                                             alt={book.title}
-                                            width={200}
-                                            height={200}
+                                            width={150}
+                                            height={150}
                                             unoptimized
-                                            className="w-full h-40 sm:h-48 md:h-52 object-cover rounded-md mb-2 shadow-md"
+                                            className="w-full h-32 sm:h-40 md:h-48 lg:h-52 object-cover rounded-md mb-2 shadow-md"
                                         />
-                                        <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-1 line-clamp-2">
+                                        <h3 className="text-xs sm:text-sm md:text-base font-semibold text-gray-900 mb-1 line-clamp-2">
                                             {book.title}
                                         </h3>
-                                        <p className="text-xs sm:text-sm text-gray-600">
-                                            By: {book.author}
-                                        </p>
+                                        <p className="text-xs text-gray-600">By: {book.author}</p>
                                     </Link>
                                 ))
                             )}
                         </div>
 
-
                         <Button
                             onClick={scrollRight}
-                            className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-gray-800 bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-opacity z-10"
+                            className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-gray-800 bg-opacity-50 text-white p-3 sm:p-4 rounded-full hover:bg-opacity-75 transition-opacity z-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            aria-label="Scroll right"
                         >
-                            <FaChevronRight className="text-xl" />
+                            <FaChevronRight className="text-lg sm:text-xl" />
                         </Button>
                     </div>
                 </div>
             </div>
 
-            {/* ExploreCategories Section (unchanged) */}
-            <div className="bg-gray-100 text-gray-800 py-10">
-                <div className="max-w-7xl mx-auto px-4">
-                    <h2 className="text-3xl md:text-4xl font-bold mb-2">
+            {/* Explore Categories Section */}
+            <div className="bg-gray-100 text-gray-800 py-6 sm:py-8 md:py-10">
+                <div className="max-w-7xl mx-auto px-3 sm:px-4">
+                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">
                         Explore new worlds
                     </h2>
-                    <p className="text-gray-400 mb-6">
-                        From epic stories to self-improvement, there are audiobooks for
-                        everyone.
+                    <p className="text-gray-400 text-sm sm:text-base mb-4 sm:mb-6">
+                        From epic stories to self-improvement, there are audiobooks for everyone.
                     </p>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-4">
                         {categories.map((category, index) => (
                             <div
                                 key={index}
-                                className="bg-[#031C30] rounded-lg p-4 flex items-center justify-between transition-colors duration-300"
+                                className="bg-[#031C30] rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between transition-colors duration-300"
                             >
-                                <h3 className="text-sm sm:text-base font-semibold text-white">
+                                <h3 className="text-xs sm:text-sm md:text-base font-semibold text-white mb-2 sm:mb-0 sm:mr-2">
                                     {category.title}
                                 </h3>
-                                <img
-                                    src={category.image}
-                                    alt={category.title}
-                                    width={200}
-                                    height={200}
-                                    className="w-32 mb-3 object-contain"
-                                    unoptimized
-                                />
+                                {category.image ? (
+                                    <div className="w-full h-20 sm:h-24 md:h-28 flex items-center justify-center">
+                                        <img
+                                            src={category.image}
+                                            alt={category.title}
+                                            width={80}
+                                            height={80}
+                                            loading="lazy"
+                                            className="max-w-full max-h-full object-contain rounded-md"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="w-full h-20 sm:h-24 md:h-28 flex items-center justify-center bg-gray-700 rounded-md">
+                                        {/* <span className="text-xs text-white">No Image</span> */}
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -207,14 +214,22 @@ const AudioBooks = () => {
             </div>
 
             <style>{`
-                .hide-scrollbar::-webkit-scrollbar {
-                    display: none;
-                }
-                .hide-scrollbar {
-                    -ms-overflow-style: none;
-                    scrollbar-width: none;
-                }
-            `}</style>
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .scroll-smooth {
+          scroll-behavior: smooth;
+        }
+        @media (max-width: 640px) {
+          .grid-cols-2 {
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+          }
+        }
+      `}</style>
         </Layout>
     );
 };

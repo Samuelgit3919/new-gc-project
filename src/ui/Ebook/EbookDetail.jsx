@@ -29,55 +29,45 @@ export default function EbookDetail() {
         review: "",
     })
     const [visibleReviews, setVisibleReviews] = useState(2)
-    const [ebook, setEbook] = useState(null)
+    const [ebook, setEbook] = useState({})
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
-    const [relatedEbooks, setRelatedEbooks] = useState([])
+    // const [relatedEbooks, setRelatedEbooks] = useState([])
 
     const { id } = useParams()
+    console.log(id)
 
     useEffect(() => {
         const fetchEbookData = async () => {
             try {
-                setLoading(true)
+                setLoading(true);
+                setError(null);
+
                 // Fetch the main ebook data
-                const response = await fetch(`https://bookcompass.onrender.com/api/books/singleBook/${id}`)
+                const response = await fetch(`https://bookcompass.onrender.com/api/books/singleBook/${id}`);
 
                 if (!response.ok) {
-                    throw new Error(`Failed to fetch ebook: ${response.status}`)
+                    throw new Error(`Failed to fetch ebook. Status: ${response.status}`);
                 }
 
-                const data = await response.json()
-                if (!data) {
-                    throw new Error("Ebook data is empty")
+                const ebookData = await response.json();
+                console.log(ebookData.data)
+                setEbook(ebookData.data);
+
+                if (!ebookData || typeof ebookData !== 'object') {
+                    throw new Error("Invalid or empty ebook data");
                 }
-                setEbook(data)
-
-                // If there are related books, fetch their data
-                if (data.relatedBooks && data.relatedBooks.length > 0) {
-                    const relatedPromises = data.relatedBooks.map(bookId =>
-                        fetch(`https://bookcompass.onrender.com/api/books/singleBook/${bookId}`)
-                            .then(res => {
-                                if (!res.ok) return null
-                                return res.json()
-                            })
-                            .catch(() => null)
-                    )
-
-                    const relatedResults = await Promise.all(relatedPromises)
-                    setRelatedEbooks(relatedResults.filter(book => book !== null))
-                }
-
             } catch (err) {
-                setError(err.message)
-                console.error("Error fetching ebook data:", err)
+                console.error("Error fetching ebook data:", err);
+                setError(err.message || "An unknown error occurred.");
             } finally {
-                setLoading(false)
+                setLoading(false);
             }
-        }
+        };
 
-        fetchEbookData()
-    }, [id])
+        fetchEbookData();
+    }, [id]);
+
 
     const showNotification = (title, description, type = "info") => {
         if (typeof window !== "undefined") {
@@ -269,7 +259,7 @@ export default function EbookDetail() {
                     <div className="flex justify-center md:col-span-1">
                         <div className="relative aspect-[2/3] w-full max-w-[300px] overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
                             <img
-                                src={ebook.cover || "/placeholder-cover.jpg"}
+                                src={ebook.imageUrl || "/placeholder-cover.jpg"}
                                 alt={`${ebook.title} cover`}
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
@@ -445,7 +435,7 @@ export default function EbookDetail() {
                 </div>
 
                 {/* Related E-Books Section */}
-                {relatedEbooks.length > 0 && (
+                {/* {relatedEbooks.length > 0 && (
                     <div className="mt-16">
                         <h2 className="mb-6 text-2xl font-bold tracking-tight">You May Also Like</h2>
                         <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
@@ -474,7 +464,7 @@ export default function EbookDetail() {
                             ))}
                         </div>
                     </div>
-                )}
+                )} */}
 
                 {/* Reviews Section */}
                 <div className="mt-16">
