@@ -38,21 +38,21 @@ export default function ContactPage() {
         {
             icon: Mail,
             title: "Send us an email",
-            contact: "info@example.com",
+            contact: "sami@gmail.com",
             description: "address",
-            href: "mailto:info@example.com"
+            href: "mailto:sami@gmail.com"
         },
         {
             icon: Phone,
             title: "Contact our call center",
-            contact: "+1 (234) 567-8901",
+            contact: "+251 939191959",
             description: "Available 24/7",
-            href: "tel:+12345678901"
+            href: "tel:+251 939191959"
         },
         {
             icon: MessageSquare,
             title: "Reach us using our short code",
-            contact: "991",
+            contact: "123",
             description: "Text us anytime"
         }
     ];

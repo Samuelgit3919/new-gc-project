@@ -1,44 +1,72 @@
-import React from "react";
+// Components/BestSeller/BestSeller.jsx
+import React, { useContext, useEffect, useState } from "react";
 import { MdStarRate } from "react-icons/md";
+import { DataContext } from "../../DataProvider/DataProvider";
+import { Type } from "../../Utility/action.type";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import axios from "axios";
 
 const BestSeller = () => {
-    const slides = [
-        {
-            image:
-                "https://i.pinimg.com/736x/f5/4f/08/f54f0874809bfb306cefe230135cb797.jpg",
-            title: "Be yourself & Never Surrender",
-            subtitle: "Inspirational Journey",
-            type: "Adventure",
-            rating: 4.5,
-            des: "Adventure of Mount Everest",
-            author: "Hanry Marlopo",
-            price: 21.99,
-            discountPrice: 18.99,
-        },
-        {
-            image:
-                "https://i.pinimg.com/736x/f5/4f/08/f54f0874809bfb306cefe230135cb797.jpg",
-            title: "Theory: Is Alien Real",
-            subtitle: "Explore the Unknown",
-            type: "Fiction",
-            rating: 4.2,
-            des: "Life of wild",
-            author: "Rick Riordan",
-            price: 19.99,
-        },
-        {
-            image:
-                "https://i.pinimg.com/736x/f5/4f/08/f54f0874809bfb306cefe230135cb797.jpg",
-            title: "The Unseen",
-            subtitle: "Discover Hidden Mysteries",
-            type: "Thriller",
-            rating: 4.8,
-            des: "Story of Everest",
-            author: "Stephen King",
-            price: 24.99,
-            discountPrice: 21.99,
-        },
-    ];
+    const [state, dispatch] = useContext(DataContext);
+    const [productData, setProducts] = useState([]);
+
+
+    useEffect(() => {
+        fetch("/best.json")
+            .then((response) => response.json())
+            .then((data) => {
+                setProducts(data);
+            })
+            .catch((err) => {
+                console.error("Error fetching best sellers:", err);
+                toast.error("Failed to load products.");
+            });
+    }, []);
+
+    const addToCart = async (product) => {
+        // 1. Add to context state for UI responsiveness
+        dispatch({
+            type: Type.ADD_TO_BASKET,
+            item: {
+                id: product._id,
+                img: product.img,
+                title: product.title,
+                subtitle: product.subtitle,
+                type: product.type,
+                rating: product.rating,
+                description: product.description,
+            },
+        });
+
+        toast.success("Item added to cart!");
+
+        // 2. Try to sync with backend if user is logged in
+        const token = localStorage.getItem("token");
+        if (!token) {
+            console.log("User not logged in — item stored in local state only.");
+            return;
+        }
+
+        try {
+            await axios.post(
+                "https://bookcompass.onrender.com/api/cart/createCart",
+                {
+                    bookId: product._id,
+                    quantity: 1,
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+            console.log("Cart updated on backend.");
+        } catch (err) {
+            console.error("Backend sync failed:", err);
+            toast.error("Failed to sync with backend cart.");
+        }
+    };
 
     return (
         <div className="w-full max-w-7xl mx-auto py-12 px-4">
@@ -46,69 +74,80 @@ const BestSeller = () => {
                 Best Sellers
             </h1>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                {slides.map((slide, index) => (
+                {productData.map((product, index) => (
                     <div
                         key={index}
                         className="group flex flex-col sm:flex-row transition-all duration-300 hover:shadow-xl rounded-xl bg-white overflow-hidden"
                     >
-                        {/* Image Section - Left Side */}
+                        {/* Image Section */}
                         <div className="relative sm:w-2/5">
                             <img
-                                src={slide.image}
-                                alt={slide.title}
+                                src={product.img}
+                                alt={product.title}
                                 className="h-64 sm:h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                             />
-                            {slide.discountPrice && (
+                            {product.discountPrice && (
                                 <span className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                                    Sale
+                                    {Math.round(
+                                        (1 - product.discountPrice / product.price) * 100
+                                    )}
+                                    % OFF
                                 </span>
                             )}
                         </div>
 
-                        {/* Content Section - Right Side */}
+                        {/* Content Section */}
                         <div className="flex flex-col p-4 sm:w-3/5 gap-4">
                             {/* Tag and Rating */}
                             <div className="flex items-center justify-between">
                                 <span className="inline-block px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
-                                    {slide.type}
+                                    {product.type}
                                 </span>
                                 <div className="flex items-center gap-1 text-orange-500">
                                     <MdStarRate size={20} />
-                                    <span className="font-medium">{slide.rating}</span>
+                                    <span className="font-medium">{product.rating}</span>
                                 </div>
                             </div>
 
                             {/* Title and Description */}
                             <div>
                                 <h3 className="text-xl font-semibold text-gray-800 group-hover:text-gray-600 transition-colors">
-                                    {slide.title}
+                                    {product.title}
                                 </h3>
-                                <p className="text-sm text-gray-600 mt-1">{slide.des}</p>
+                                <p className="text-sm text-gray-600 mt-1">
+                                    {product.description}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-1 italic">
+                                    {product.subtitle}
+                                </p>
                             </div>
 
                             {/* Author and Price */}
                             <div className="mt-auto flex items-center justify-between">
-                                <p className="font-serif text-gray-700">{slide.author}</p>
+                                <p className="font-serif text-gray-700">{product.author}</p>
                                 <div className="text-right">
-                                    {slide.discountPrice ? (
+                                    {product.discountPrice ? (
                                         <div>
                                             <span className="text-sm text-gray-500 line-through">
-                                                ${slide.price.toFixed(2)}
+                                                ${product.price.toFixed(2)}
                                             </span>
                                             <span className="ml-2 text-xl font-bold text-gray-600">
-                                                ${slide.discountPrice.toFixed(2)}
+                                                ${product.discountPrice.toFixed(2)}
                                             </span>
                                         </div>
                                     ) : (
                                         <span className="text-xl font-bold text-gray-600">
-                                            ${slide.price.toFixed(2)}
+                                            ${product.price.toFixed(2)}
                                         </span>
                                     )}
                                 </div>
                             </div>
 
                             {/* Add to Cart Button */}
-                            <button className="mt-4 w-full py-2 bg-gray-600 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-gray-700">
+                            <button
+                                onClick={() => addToCart(product)}
+                                className="mt-4 w-full py-2 bg-gray-600 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-gray-700"
+                            >
                                 Add to Cart
                             </button>
                         </div>

@@ -43,12 +43,12 @@ export default function AccountPage() {
         const fetchOrders = async () => {
             try {
                 const token = localStorage.getItem("token");
+                console.log(token)
 
 
                 if (!token || !id) {
                     throw new Error("User not authenticated");
                 }
-
 
                 const response = await axios.get(`https://bookcompass.onrender.com/api/order/getOrder`, {
                     headers: {

@@ -1,0 +1,32 @@
+[
+    {
+      "totalSold": 1,
+      "_id": "681eec87eb8ab6bdfcce9fab",
+      "title": "string",
+      "author": "string",
+      "price": 700,
+      "isDigital": true,
+      "isAudiobook": false,
+      "img": "https://i.pinimg.com/736x/55/e9/d9/55e9d9d2241b88e9c0bc2e951febb92d.jpg"
+    },
+    {
+      "totalSold": 1,
+      "_id": "6829cb3c77792e54b4acb8c7",
+      "title": "The Great Gatsby",
+      "author": "F. Scott Fitzgerald",
+      "price": 19.99,
+      "isDigital": false,
+      "isAudiobook": false,
+      "img":"https://i.pinimg.com/736x/55/e9/d9/55e9d9d2241b88e9c0bc2e951febb92d.jpg"
+    },
+    {
+        "totalSold": 1,
+        "_id": "6829cb3c77792e54b4acb8c8",
+        "title": "1984",
+        "author": "George Orwell",
+        "price": 15.99,
+        "isDigital": true,
+        "isAudiobook": false,
+        "img":"https://i.pinimg.com/736x/55/e9/d9/55e9d9d2241b88e9c0bc2e951febb92d.jpg"
+    }
+  ]
