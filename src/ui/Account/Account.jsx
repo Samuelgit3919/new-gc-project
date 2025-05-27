@@ -16,6 +16,10 @@ export default function AccountPage() {
     const [name, setName] = useState("")
     const [email, setEmail] = useState("")
     const [phone, setPhone] = useState("")
+    const [orders, setOrders] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
     const [address, setAddress] = useState({
         street: "",
         city: "",
@@ -23,18 +27,16 @@ export default function AccountPage() {
         zip: "",
         country: "",
     })
-    const userData = JSON.parse(localStorage.getItem("user"));
-    // console.log("userData from localStorage:", userData);
+    const userData = JSON.parse(localStorage.getItem("user")) || {};
+    const id = userData._id || (userData.data && userData.data._id);
 
-    // If userData has a top-level `_id`, use that
-    const id = userData?._id || userData?.data?._id;
+    // if (!id) {
+    //     console.error("No user ID found - redirecting to login");
+    //     navigate("/login");
+    //     return;
+    // }
 
-    // console.log("userId:", id);
 
-
-    const [orders, setOrders] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
 
 
 

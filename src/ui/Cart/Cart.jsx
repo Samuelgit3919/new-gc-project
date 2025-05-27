@@ -1,69 +1,65 @@
-import { useEffect, useState } from "react"
+import { useContext, useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { ArrowLeft, Minus, Plus, ShoppingCart, Trash } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import Layout from "../../Layout"
-import axios from "axios"
+import { DataContext } from "../../DataProvider/DataProvider"
+import { Type } from "../../Utility/action.type"
 
 export default function CartPage() {
-    const [cartItems, setCartItems] = useState([])
-    const [loading, setLoading] = useState(true)
+    const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
+    const [{ basket }, dispatch] = useContext(DataContext)
+
+    console.log({ basket })
 
     useEffect(() => {
-        const fetchCart = async () => {
-            try {
-                const token = localStorage.getItem("token") // Adjust if you're storing token under a different key
-                if (!token) {
-                    throw new Error("No token found")
-                }
-
-                const response = await axios.get("https://bookcompass.onrender.com/api/cart/getCart", {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                })
-
-                console.log(response)
-
-                setCartItems(response.data.cartItems || []) // Adjust key based on actual API structure
-                setLoading(false)
-            } catch (err) {
-                console.error("Failed to fetch cart:", err)
-                setError(err.response?.data?.message || err.message)
-                setLoading(false)
-            }
-        }
-
-        fetchCart()
+        setLoading(false) // No API calls, so loading is complete
     }, [])
 
-    const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
-    const shipping = cartItems.length > 0 ? 4.99 : 0
-    const tax = subtotal * 0.08
-    const total = subtotal + shipping + tax
-
-    const handleUpdateQuantity = (id, change) => {
-        setCartItems(
-            cartItems.map((item) =>
-                item._id === id
-                    ? { ...item, quantity: Math.max(1, item.quantity + change) }
-                    : item
-            )
-        )
+    const increment = (item) => {
+        dispatch({
+            type: Type.ADD_TO_BASKET,
+            item: {
+                id: item.id,
+                title: item.title,
+                author: item.author,
+                img: item.img,
+                format: item.format,
+                quantity: 1,
+                price: parseFloat(item.price) || 0,
+                description: item.description,
+            },
+        })
     }
 
-    const handleRemoveItem = (id) => {
-        setCartItems(cartItems.filter((item) => item._id !== id))
-        console.log("Item removed from cart")
+    const decrement = (id) => {
+        dispatch({
+            type: Type.REMOVE_FROM_BASKET,
+            id,
+        })
+    }
+
+    const removeItem = (id) => {
+        dispatch({
+            type: Type.REMOVE_ITEM,
+            id,
+        })
     }
 
     const handleClearCart = () => {
-        setCartItems([])
-        console.log("Cart cleared")
+        if (!window.confirm("Are you sure you want to clear your cart?")) return
+        dispatch({
+            type: Type.CLEAR_BASKET,
+        })
     }
+
+    const subtotal = basket.reduce((sum, item) => sum + (parseFloat(item.price) || 0) * (item.amount || 1), 0)
+    const shipping = basket.length > 0 ? 4.99 : 0
+    const tax = subtotal * 0.08
+    const total = subtotal + shipping + tax
 
     return (
         <Layout>
@@ -80,7 +76,7 @@ export default function CartPage() {
                 {loading ? (
                     <p>Loading cart...</p>
                 ) : error ? (
-                    <p className="text-red-500">Error loading cart: {error}</p>
+                    <p className="text-red-500">Error: {error}</p>
                 ) : (
                     <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                         <div className="md:col-span-1 lg:col-span-2">
@@ -88,11 +84,11 @@ export default function CartPage() {
                                 <div>
                                     <h1 className="text-3xl font-bold tracking-tight">Your Cart</h1>
                                     <p className="text-muted-foreground">
-                                        {cartItems.length} {cartItems.length === 1 ? "item" : "items"} in your cart
+                                        {basket.length} {basket.length === 1 ? "item" : "items"} in your cart
                                     </p>
                                 </div>
 
-                                {cartItems.length === 0 ? (
+                                {basket.length === 0 ? (
                                     <Card>
                                         <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                                             <ShoppingCart className="h-12 w-12 text-muted-foreground" />
@@ -115,22 +111,25 @@ export default function CartPage() {
                                         </CardHeader>
                                         <CardContent>
                                             <div className="space-y-4">
-                                                {cartItems.map((item) => (
-                                                    <div key={item._id} className="flex gap-4">
+                                                {basket.map((item) => (
+                                                    <div key={item.id} className="flex gap-4">
                                                         <div className="h-24 w-16 flex-shrink-0 overflow-hidden rounded-md border">
                                                             <img
-                                                                src={item.cover || "/placeholder.svg"}
-                                                                alt={item.title}
+                                                                src={item.img || "/placeholder.svg"}
+                                                                alt={item.title || "Book image"}
                                                                 className="h-full w-full object-cover"
                                                             />
                                                         </div>
                                                         <div className="flex flex-1 flex-col justify-between">
                                                             <div>
-                                                                <Link to={`/ui/books/${item._id}`} className="font-medium hover:underline">
-                                                                    {item.title}
+                                                                <Link to={`/ui/books/${item.id}`} className="font-medium hover:underline">
+                                                                    {item.title || "Untitled"}
                                                                 </Link>
                                                                 <p className="text-sm text-muted-foreground">
-                                                                    {item.author} • {item.format}
+                                                                    {item.author || "Unknown"} • {item.format || "Unknown"}
+                                                                </p>
+                                                                <p className="text-sm text-muted-foreground mt-1">
+                                                                    Price: ${(parseFloat(item.price) || 0).toFixed(2)}
                                                                 </p>
                                                             </div>
                                                             <div className="mt-2 flex items-center justify-between">
@@ -139,28 +138,30 @@ export default function CartPage() {
                                                                         variant="outline"
                                                                         size="icon"
                                                                         className="h-8 w-8"
-                                                                        onClick={() => handleUpdateQuantity(item._id, -1)}
-                                                                        disabled={item.quantity <= 1}
+                                                                        onClick={() => decrement(item.id)}
+                                                                        disabled={(item.amount || 1) <= 1}
                                                                     >
                                                                         <Minus className="h-3 w-3" />
                                                                     </Button>
-                                                                    <span className="w-8 text-center">{item.quantity}</span>
+                                                                    <span className="w-8 text-center">{item.amount || 1}</span>
                                                                     <Button
                                                                         variant="outline"
                                                                         size="icon"
                                                                         className="h-8 w-8"
-                                                                        onClick={() => handleUpdateQuantity(item._id, 1)}
+                                                                        onClick={() => increment(item)}
                                                                     >
                                                                         <Plus className="h-3 w-3" />
                                                                     </Button>
                                                                 </div>
                                                                 <div className="flex items-center space-x-4">
-                                                                    <p className="font-medium">${(item.price * item.quantity).toFixed(2)}</p>
+                                                                    <p className="font-medium">
+                                                                        ${((parseFloat(item.price) || 0) * (item.amount || 1)).toFixed(2)}
+                                                                    </p>
                                                                     <Button
                                                                         variant="ghost"
                                                                         size="icon"
                                                                         className="h-8 w-8"
-                                                                        onClick={() => handleRemoveItem(item._id)}
+                                                                        onClick={() => removeItem(item.id)}
                                                                     >
                                                                         <Trash className="h-4 w-4" />
                                                                     </Button>
@@ -176,7 +177,6 @@ export default function CartPage() {
                             </div>
                         </div>
 
-                        {/* Order Summary */}
                         <div className="md:col-span-1">
                             <div className="sticky top-24 space-y-6">
                                 <Card>
@@ -203,26 +203,10 @@ export default function CartPage() {
                                         </div>
                                     </CardContent>
                                     <CardFooter>
-                                        <Button className="w-full" disabled={cartItems.length === 0} asChild>
+                                        <Button className="w-full" disabled={basket.length === 0} asChild>
                                             <Link to="/ui/checkout">Proceed to Checkout</Link>
                                         </Button>
                                     </CardFooter>
-                                </Card>
-
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>Have a Promo Code?</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <div className="flex space-x-2">
-                                            <input
-                                                type="text"
-                                                placeholder="Enter code"
-                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                            />
-                                            <Button variant="outline">Apply</Button>
-                                        </div>
-                                    </CardContent>
                                 </Card>
                             </div>
                         </div>

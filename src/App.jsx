@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useContext, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import HomeLayout from './components/HomePage/HomeLayout'
 import Login from "./components/Auth/Login"
@@ -21,9 +21,43 @@ import Page from './admin/Page'
 import FAQPage from './ui/Help/FAQPage'
 import ContactPage from './ui/Help/ContactPage'
 import TermsOfUse from './ui/Help/TermsOfUse'
+import { Type } from './Utility/action.type'
+import { DataContext } from './DataProvider/DataProvider'
+
 
 
 const App = () => {
+  const [{ user }, dispatch] = useContext(DataContext);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const user = localStorage.getItem("user");
+
+    // const userId = localStorage.getItem("userId");
+    const userId = user ? JSON.parse(user)._id : null; // Extract userId from user object
+    if (user) {
+      dispatch({
+        type: Type.SET_USER,
+        user: JSON.parse(user),
+      });
+    }
+    // if (userId) {
+    //   dispatch({
+    //     type: Type.SET_USER_ID,
+    //     userId: JSON.parse(userId),
+    //   });
+    // }
+    console.log("User:", user);
+    console.log("User ID:", userId);
+    console.log("Token:", token);
+    if (token) {
+
+      console.log("Token found:", token);
+    } else {
+      console.log("No token found");
+    }
+  }
+    , []);
   return (
     <Router>
       <Routes>

@@ -8,7 +8,7 @@ import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 
 const BestSeller = () => {
-    const [state, dispatch] = useContext(DataContext);
+    const [{ user }, dispatch] = useContext(DataContext);
     const [productData, setProducts] = useState([]);
 
 
@@ -25,30 +25,33 @@ const BestSeller = () => {
     }, []);
 
     const addToCart = async (product) => {
-        // 1. Add to context state for UI responsiveness
-        dispatch({
-            type: Type.ADD_TO_BASKET,
-            item: {
-                id: product._id,
-                img: product.img,
-                title: product.title,
-                subtitle: product.subtitle,
-                type: product.type,
-                rating: product.rating,
-                description: product.description,
-            },
-        });
-
-        toast.success("Item added to cart!");
-
-        // 2. Try to sync with backend if user is logged in
         const token = localStorage.getItem("token");
-        if (!token) {
-            console.log("User not logged in — item stored in local state only.");
+
+        // ✅ Check if the user is authenticated
+        if (!user || !token) {
+            toast.error("You must be logged in to add items to the cart.");
             return;
         }
 
         try {
+            // 1. Add to context for immediate UI feedback
+            dispatch({
+                type: Type.ADD_TO_BASKET,
+                item: {
+                    id: product._id,
+                    img: product.img,
+                    title: product.title,
+                    subtitle: product.subtitle,
+                    type: product.type,
+                    rating: product.rating,
+                    description: product.description,
+                    price: product.price,
+                },
+            });
+
+            toast.success("Item added to cart!");
+
+            // 2. Sync with backend
             await axios.post(
                 "https://bookcompass.onrender.com/api/cart/createCart",
                 {
@@ -61,12 +64,14 @@ const BestSeller = () => {
                     },
                 }
             );
+
             console.log("Cart updated on backend.");
         } catch (err) {
             console.error("Backend sync failed:", err);
             toast.error("Failed to sync with backend cart.");
         }
     };
+
 
     return (
         <div className="w-full max-w-7xl mx-auto py-12 px-4">
