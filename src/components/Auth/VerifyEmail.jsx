@@ -31,7 +31,7 @@ export default function VerifyEmail() {
     }
 
     return (
-        <div className="flex h-[80vh] flex-col items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100 p-4">
+        <div className="flex h-[100vh] flex-col items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100 p-4">
             <div className="w-full max-w-md space-y-8 rounded-xl bg-white p-8 shadow-lg">
                 <div className="text-center">
                     <Link to="/" className="flex items-center justify-center">

@@ -38,7 +38,7 @@ export default function ForgotPassword() {
     }
 
     return (
-        <div className="flex min-h-[50vh] flex-col items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100 p-4">
+        <div className="flex min-h-[100vh] flex-col items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100 p-4">
             <div className="w-full max-w-md space-y-8 rounded-xl bg-white p-8 shadow-lg">
                 {/* Header */}
                 <div className="text-center">

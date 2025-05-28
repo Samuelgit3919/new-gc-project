@@ -10,7 +10,7 @@ const Lower = () => {
     const links = [
         { label: "Home", href: "/", icon: <IoIosBook className="inline ml-1" /> },
         { label: "EBooks", href: "/EBook", icon: <IoIosBook className="inline ml-1" /> },
-        { label: "ShopLists", href: "/shopLists", icon: <AiFillMessage className="inline ml-1" /> },
+        { label: "Shops", href: "/shopLists", icon: <AiFillMessage className="inline ml-1" /> },
         { label: "Textbooks", href: "/textbooks", icon: <IoIosBook className="inline ml-1" /> },
         { label: "Audiobooks", href: "/audiobooks", icon: <CgProfile className="inline ml-1" /> },
     ];

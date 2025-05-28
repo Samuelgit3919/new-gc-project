@@ -17,16 +17,37 @@ function DashboardView() {
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const response = await axios.get("https://bookcompass.onrender.com/api/admin/dashboard")
-                setBooks(response.data.books || [])
-                setOrders(response.data.orders || [])
-            } catch (error) {
-                console.error("Failed to fetch dashboard data:", error)
-            }
-        }
+                const token = localStorage.getItem("token");
+                if (!token) {
+                    throw new Error("No authentication token found");
+                }
 
-        fetchDashboardData()
-    }, [])
+                const response = await axios.get(
+                    "https://bookcompass.onrender.com/api/books/getBook/myBooks",
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    }
+                );
+
+                console.log(response.data.data);
+                setBooks(response.data.data || []);
+                setOrders(response.data.orders || []);
+            } catch (error) {
+                console.error("Failed to fetch dashboard data:", error);
+                // Handle unauthorized error (401)
+                if (error.response?.status === 401) {
+                    // Clear invalid token and redirect to login
+                    localStorage.removeItem("token");
+                    // You might want to redirect to login page here
+                    // or show a login modal
+                }
+            }
+        };
+
+        fetchDashboardData();
+    }, []);
 
     const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0)
     const { months, sales } = calculateMonthlySales(orders)

@@ -18,6 +18,10 @@ export function getTitle(activeView) {
 
 // Return color classes based on stock or user status
 export function getStatusColor(status) {
+  if (!status || typeof status !== 'string') {
+    return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+  }
+
   switch (status.toLowerCase()) {
     case "in stock":
       return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
@@ -35,6 +39,7 @@ export function getStatusColor(status) {
       return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
   }
 }
+
 
 // Return color classes based on user role
 export function getRoleColor(role) {

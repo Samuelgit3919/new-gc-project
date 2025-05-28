@@ -1,5 +1,5 @@
-import React, { useContext, useState } from "react";
-import { ShoppingCart, User } from "lucide-react";
+import React, { useContext, useState, useEffect, useRef } from "react";
+import { ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { DataContext } from "../../DataProvider/DataProvider";
@@ -7,8 +7,8 @@ import { FaUserCircle } from "react-icons/fa";
 import { Type } from "../../Utility/action.type";
 
 const NavRouter = () => {
-    const [showProfileMenu, setShowProfileMenu] = useState(false);
-    const [showHelpMenu, setShowHelpMenu] = useState(false);
+    const [activeDropdown, setActiveDropdown] = useState(null); // 'profile' or 'help'
+    const navRef = useRef(null);
 
     const NavLink = [
         { label: "Help", to: "/help", isDropdown: true },
@@ -38,11 +38,29 @@ const NavRouter = () => {
         localStorage.removeItem("user");
         localStorage.removeItem("token");
         dispatch({ type: Type.SET_USER, user: null });
-        setShowProfileMenu(false);
+        setActiveDropdown(null);
+    };
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (navRef.current && !navRef.current.contains(event.target)) {
+                setActiveDropdown(null);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
+
+    const toggleDropdown = (dropdownName) => {
+        setActiveDropdown(activeDropdown === dropdownName ? null : dropdownName);
     };
 
     return (
-        <div className="hidden md:flex items-center gap-6">
+        <div className="hidden md:flex items-center gap-6" ref={navRef}>
             {NavLink.map((link) =>
                 link.isDropdown ? (
                     <div key={link.label} className="relative">
@@ -50,14 +68,14 @@ const NavRouter = () => {
                             variant="ghost"
                             size="icon"
                             className="text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors duration-200 flex items-center"
-                            onClick={() => setShowHelpMenu(!showHelpMenu)}
+                            onClick={() => toggleDropdown("help")}
                             aria-label={link.label}
-                            aria-expanded={showHelpMenu}
+                            aria-expanded={activeDropdown === "help"}
                         >
                             {link.label}
                             <span className="sr-only">Toggle {link.label} menu</span>
                         </Button>
-                        {showHelpMenu && (
+                        {activeDropdown === "help" && (
                             <div className="absolute right-0 mt-2 w-48 rounded-md bg-background shadow-lg ring-1 ring-black ring-opacity-5 z-50">
                                 <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="help-menu">
                                     {helpLinks.map((item) => (
@@ -65,7 +83,7 @@ const NavRouter = () => {
                                             key={item.label}
                                             to={item.to}
                                             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                                            onClick={() => setShowHelpMenu(false)}
+                                            onClick={() => setActiveDropdown(null)}
                                             role="menuitem"
                                         >
                                             {item.label}
@@ -104,14 +122,15 @@ const NavRouter = () => {
 
             <div className="relative inline-block text-left">
                 <button
-                    onClick={() => setShowProfileMenu((prev) => !prev)}
+                    onClick={() => toggleDropdown("profile")}
                     className="flex items-center space-x-2 px-4 py-2 bg-transparent text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none"
+                    aria-expanded={activeDropdown === "profile"}
                 >
                     <FaUserCircle className="text-xl" />
                     {user && <span>{user.name || user.email}</span>}
                 </button>
 
-                {showProfileMenu && (
+                {activeDropdown === "profile" && (
                     <div className="absolute right-0 mt-2 w-48 rounded-md bg-background shadow-lg ring-1 ring-black ring-opacity-5 z-50">
                         <div
                             className="py-1"
@@ -128,7 +147,7 @@ const NavRouter = () => {
                                             if (link.label.toLowerCase() === "sign out") {
                                                 handleSignOut();
                                             }
-                                            setShowProfileMenu(false);
+                                            setActiveDropdown(null);
                                         }}
                                         role="menuitem"
                                     >
@@ -139,7 +158,7 @@ const NavRouter = () => {
                                         key={link.label}
                                         to={link.to}
                                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                                        onClick={() => setShowProfileMenu(false)}
+                                        onClick={() => setActiveDropdown(null)}
                                         role="menuitem"
                                     >
                                         {link.label}

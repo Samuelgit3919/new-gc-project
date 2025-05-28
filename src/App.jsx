@@ -23,6 +23,7 @@ import ContactPage from './ui/Help/ContactPage'
 import TermsOfUse from './ui/Help/TermsOfUse'
 import { Type } from './Utility/action.type'
 import { DataContext } from './DataProvider/DataProvider'
+import AdminPanel from './systemAdmin/AdminPage'
 
 
 
@@ -35,6 +36,7 @@ const App = () => {
 
     // const userId = localStorage.getItem("userId");
     const userId = user ? JSON.parse(user)._id : null; // Extract userId from user object
+    console.log(userId);
     if (user) {
       dispatch({
         type: Type.SET_USER,
@@ -47,9 +49,9 @@ const App = () => {
     //     userId: JSON.parse(userId),
     //   });
     // }
-    console.log("User:", user);
-    console.log("User ID:", userId);
-    console.log("Token:", token);
+    // console.log("User:", user);
+    // console.log("User ID:", userId);
+    // console.log("Token:", token);
     if (token) {
 
       console.log("Token found:", token);
@@ -72,6 +74,8 @@ const App = () => {
           <Route path='/cart' element={<Cart />} />
           <Route path='/page' element={<Page />} />
         </Route>
+
+        <Route path='/adminPanel' element={<AdminPanel />} />
 
         <Route path='/audiobooks' element={<AudioBooks />}
         />
