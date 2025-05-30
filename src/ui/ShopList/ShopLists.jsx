@@ -1,122 +1,168 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import React from "react";
-import {
-    Tabs,
-    TabsContent,
-    TabsList,
-    TabsTrigger,
-} from "../../components/ui/tabs"
-// import { bookStores } from "./shopLista";
-import Layout from "../../Layout"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
+import Layout from "../../Layout";
+import { toast } from "sonner";
 
 const ShopLists = () => {
-    const bookStores = [
-        {
-            id: 1,
-            owner: "Mekdi",
-            location: "Addis Ababa",
-            rating: 4.5,
-            website: "www.addislibrary.com",
-            description: "",
-            imageUrl: "",
-            mapEmbed:
-                "https://maps.google.com/maps?q=shop&t=&z=13&ie=UTF8&iwloc=&output=embed",
-            phone: "555-0123",
-            email: "shop@example.com",
-            name: "ADDIS LIBRARY",
-            contact: "Office: +25111467...",
-        },
-        {
-            id: 2,
-            owner: "miki",
-            location: "Addis Ababa",
-            rating: 4.5,
-            website: "www.africabookstore.com",
-            description: "",
-            imageUrl: "",
-            mapEmbed:
-                "https://maps.google.com/maps?q=shop&t=&z=13&ie=UTF8&iwloc=&output=embed",
-            phone: "555-0123",
-            email: "shop@example.com",
-            name: "AFRICA BOOK STORE",
-            contact: "Office: +25111111...",
-        },
-        {
-            id: 3,
-            owner: "sami",
-            location: "Addis Ababa",
-            rating: 4.5,
-            website: "www.africanbookshop.com",
-            description: "",
-            imageUrl: "",
-            mapEmbed:
-                "https://maps.google.com/maps?q=shop&t=&z=13&ie=UTF8&iwloc=&output=embed",
-            phone: "555-0123",
-            email: "shop@example.com",
-            name: "AFRICAN BOOK SHOP",
-            contact: "Office: +25111111...",
-        },
-        {
-            id: 4,
-            owner: "aggam",
-            location: "Addis Ababa",
-            rating: 4.5,
-            website: "www.aggam.com",
-            description: "",
-            imageUrl: "",
-            mapEmbed:
-                "https://maps.google.com/maps?q=shop&t=&z=13&ie=UTF8&iwloc=&output=embed",
-            phone: "555-0123",
-            email: "shop@example.com",
-            name: "AGGAM HEALTH, NUTRITION, CHILD CARE AND MARRIAGE COUNSELING",
-            contact: "Mobile: +25191167...",
-        },
-        {
-            id: 5,
-            owner: "Fasika",
-            location: "Addis Ababa",
-            rating: 4.5,
-            website: "www.al-aqssa.com",
-            description: "",
-            imageUrl: "",
-            mapEmbed:
-                "https://maps.google.com/maps?q=shop&t=&z=13&ie=UTF8&iwloc=&output=embed",
-            phone: "555-0123",
-            email: "shop@example.com",
-            name: "AL-AQSSA BOOK STORE",
-            contact: "Office: +25111111...",
-        },
-        {
-            id: 6,
-            owner: "ayana",
-            location: "Addis Ababa",
-            rating: 4.5,
-            website: "www.ayanapublishing.com",
-            description: "",
-            imageUrl: "",
-            mapEmbed:
-                "https://maps.google.com/maps?q=shop&t=&z=13&ie=UTF8&iwloc=&output=embed",
-            phone: "555-0123",
-            email: "shop@example.com",
-            name: "AYANA PUBLISHING P.L.C",
-            contact: "Mobile: +25191194...",
-        },
-        {
-            id: 7,
-            owner: "Bisre",
-            location: "Addis Ababa",
-            rating: 4.5,
-            website: "www.aynalem.com",
-            description: "",
-            imageUrl: "",
-            mapEmbed:
-                "https://maps.google.com/maps?q=shop&t=&z=13&ie=UTF8&iwloc=&output=embed",
-            phone: "555-0123",
-            email: "shop@example.com",
-            name: "AYNALEM BOOK STORE",
-            contact: "Office: +25111550...",
-        },
-    ];
+    const [bookStores, setBookStores] = useState([]);
+    const [filteredBookStores, setFilteredBookStores] = useState([]);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [locationFilter, setLocationFilter] = useState("");
+    const [ratingFilter, setRatingFilter] = useState("");
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    // Fetch bookstores from API
+    const fetchBookStores = async () => {
+        setLoading(true);
+        setError(null);
+        const token = localStorage.getItem("token");
+
+        try {
+            const headers = {
+                "Content-Type": "application/json",
+            };
+            if (token) {
+                headers.Authorization = `Bearer ${token}`;
+            }
+
+            const response = await fetch("https://bookcompass.onrender.com/api/bookshop/shopList", {
+                method: "GET",
+                headers,
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `Failed to fetch bookstores (Status: ${response.status})`);
+            }
+
+            const data = await response.json();
+            console.log("API Response:", data); // Log to inspect the response
+
+            // Ensure data is an array
+            let bookStoreArray = [];
+            if (Array.isArray(data.data)) {
+                bookStoreArray = data.data;
+            } else if (data && typeof data === "object") {
+                bookStoreArray = [data];
+            } else {
+                throw new Error("Unexpected response format: Data is not an array or object");
+            }
+
+            // Handle empty response
+            if (bookStoreArray.length === 0) {
+                setBookStores([]);
+                setFilteredBookStores([]);
+                setLoading(false);
+                return;
+            }
+
+            // Map API response to expected structure
+            const formattedBookStores = bookStoreArray.map((store) => ({
+                id: store._id || `store-${Math.random()}`, // Use _id from API
+                name: store.seller?.name || "Unknown Bookstore",
+                owner: store.seller?.name || "Unknown Owner",
+                location: store.location?.address || "Unknown Location", // Google Maps URL
+                rating: store.averageRating || 0,
+                website: store.website || "", // Not in API, kept for compatibility
+                contact: store.contact?.phoneNumber || "No contact info",
+                email: store.contact?.email || "No email",
+                phone: store.contact?.phoneNumber || "No phone",
+                mapEmbed: store.location?.address || "https://maps.google.com/maps?q=shop&t=&z=13&ie=UTF8&iwloc=&output=embed",
+                description: store.description || "", // Not in API, kept for compatibility
+                imageUrl: store.images?.logo || "", // Use logo from images
+                operatingHours: store.operatingHours || {}, // Include operating hours
+                numReviews: store.numReviews || 0, // Include number of reviews
+                availableBooks: store.availableBooks?.length || 0, // Number of books
+            }));
+
+
+            setBookStores(formattedBookStores);
+            setFilteredBookStores(formattedBookStores);
+        } catch (err) {
+            console.error("Fetch error:", err);
+            setError(err.message || "No bookstores found or failed to load bookstores.");
+            setBookStores([]);
+            setFilteredBookStores([]);
+            toast.error(err.message || "No bookstores found or failed to load bookstores.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Initial fetch
+    useEffect(() => {
+        fetchBookStores();
+    }, []);
+
+    // Apply search and filters
+    useEffect(() => {
+        let result = [...bookStores];
+
+        // Apply search
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            result = result.filter((store) =>
+                store.name.toLowerCase().includes(query)
+            );
+        }
+
+        // Apply location filter
+        if (locationFilter) {
+            result = result.filter((store) =>
+                store.location.toLowerCase().includes(locationFilter.toLowerCase())
+            );
+        }
+
+        // Apply rating filter
+        if (ratingFilter) {
+            result = result.filter((store) => store.rating >= parseFloat(ratingFilter));
+        }
+
+        setFilteredBookStores(result);
+    }, [bookStores, searchQuery, locationFilter, ratingFilter]);
+
+    // Handle filter changes
+    const handleLocationChange = (e) => {
+        setLocationFilter(e.target.value);
+    };
+
+    const handleRatingChange = (e) => {
+        setRatingFilter(e.target.value);
+    };
+
+    const handleSearchChange = (e) => {
+        setSearchQuery(e.target.value);
+    };
+
+    if (loading) {
+        return (
+            <Layout className="w-full mx-auto py-8 bg-gray-50">
+                <div className="flex items-center justify-center h-64">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500" />
+                </div>
+            </Layout>
+        );
+    }
+
+    if (error) {
+        return (
+            <Layout className="w-full mx-auto py-8 bg-gray-50">
+                <div className="text-center h-64 flex flex-col items-center justify-center gap-4">
+                    <p className="text-red-500">{error}</p>
+                    <button
+                        onClick={fetchBookStores}
+                        className="bg-purple-200 text-gray-800 font-semibold py-2 px-4 rounded-md hover:bg-purple-300 transition"
+                    >
+                        Retry
+                    </button>
+                </div>
+            </Layout>
+        );
+    }
 
     return (
         <Layout className="w-full mx-auto py-8 bg-gray-50">
@@ -138,9 +184,13 @@ const ShopLists = () => {
                             <select
                                 id="location"
                                 name="location"
+                                value={locationFilter}
+                                onChange={handleLocationChange}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                             >
-                                <option value="Addis Abeba">Addis Abeba</option>
+                                <option value="">All Locations</option>
+                                {/* Hardcoded locations due to URL-based address */}
+                                <option value="Addis Ababa">Addis Ababa</option>
                                 <option value="Adama">Adama</option>
                                 <option value="Bishoftu">Bishoftu</option>
                             </select>
@@ -157,8 +207,11 @@ const ShopLists = () => {
                             <select
                                 id="rating"
                                 name="rating"
+                                value={ratingFilter}
+                                onChange={handleRatingChange}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                             >
+                                <option value="">All Ratings</option>
                                 <option value="5">5 Star</option>
                                 <option value="4">4 Star</option>
                                 <option value="3">3 Star</option>
@@ -180,45 +233,67 @@ const ShopLists = () => {
                     <input
                         type="text"
                         placeholder="Search by shop name..."
+                        value={searchQuery}
+                        onChange={handleSearchChange}
                         className="w-full mb-6 px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-200 placeholder-gray-400"
                     />
 
                     {/* Book Stores List */}
                     <div className="space-y-6">
-                        {bookStores.map((store) => (
-                            <Link
-                                key={store.id}
-                                to={`/shopLists/${store.id}`}
-                                className="flex justify-between items-center border-b border-gray-200 pb-4 hover:bg-gray-50 transition"
-                            >
-                                <div className="flex items-center">
-                                    {/* Logo Placeholder */}
-                                    <div className="w-12 h-12 bg-gray-200 mr-4 rounded-full flex items-center justify-center">
-                                        <span className="text-gray-500 text-sm">Logo</span>
+                        {filteredBookStores.length > 0 ? (
+                            filteredBookStores.map((store) => (
+                                <Link
+                                    key={store.id}
+                                    to={`/shopLists/${store.id}`}
+                                    className="flex justify-between items-center border-b border-gray-200 pb-4 hover:bg-gray-50 transition"
+                                >
+                                    <div className="flex items-center">
+                                        {/* Logo */}
+                                        <div className="w-12 h-12 mr-4 rounded-full flex items-center justify-center overflow-hidden">
+                                            {store.imageUrl ? (
+                                                <img
+                                                    src={store.imageUrl}
+                                                    alt={`${store.name} logo`}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <span className="text-gray-500 text-sm">Logo</span>
+                                            )}
+                                        </div>
+
+                                        {/* Store Details */}
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-gray-600 hover:text-purple-800 transition">
+                                                {store.name}
+                                            </h3>
+                                            <p className="text-sm text-gray-600">Contact: {store.contact}</p>
+                                            {/* <p className="text-sm text-gray-600">Email: {store.email}</p> */}
+                                            <p className="text-sm text-gray-600">Rating: {store.rating} ★ ({store.numReviews} reviews)</p>
+                                            {/* <p className="text-sm text-gray-600">Books Available: {store.availableBooks}</p> */}
+                                            {/* <p className="text-sm text-gray-600">
+                                                Hours: {store.operatingHours.monday || "N/A"}
+                                            </p> */}
+                                            {store.website && (
+                                                <p className="text-sm text-gray-600 flex items-center">
+                                                    <span className="inline-block mr-1">🌐</span> Website
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
 
-                                    {/* Store Details */}
+                                    {/* More Details Button */}
                                     <div>
-                                        <h3 className="text-lg font-semibold text-gray-600 hover:text-purple-800 transition">
-                                            {store.name}
-                                        </h3>
-                                        <p className="text-sm text-gray-600">{store.contact}</p>
-                                        {store.website && (
-                                            <p className="text-sm text-gray-600 flex items-center">
-                                                <span className="inline-block mr-1">🌐</span> Website
-                                            </p>
-                                        )}
+                                        <button className="bg-purple-200 text-gray-800 font-semibold py-2 px-4 rounded-md hover:bg-purple-300 transition">
+                                            More Details
+                                        </button>
                                     </div>
-                                </div>
-
-                                {/* More Details Button */}
-                                <div>
-                                    <button className="bg-purple-200 text-gray font-semibold py-2 px-4 rounded-md hover:bg-purple-300 transition">
-                                        More Details
-                                    </button>
-                                </div>
-                            </Link>
-                        ))}
+                                </Link>
+                            ))
+                        ) : (
+                            <div className="text-center py-4 text-gray-600">
+                                0 bookstores found
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

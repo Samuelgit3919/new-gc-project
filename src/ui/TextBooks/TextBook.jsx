@@ -16,27 +16,30 @@ const TextBook = () => {
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     // State for collapsible filter sections
     const [isCategoriesOpen, setIsCategoriesOpen] = useState(true);
-    const [isBookFormatOpen, setIsBookFormatOpen] = useState(false);
-    const [isYearsOpen, setIsYearsOpen] = useState(false);
+    const [isBookFormatOpen, setIsBookFormatOpen] = useState(true);
     const [isPublisherOpen, setIsPublisherOpen] = useState(false);
+    const [isYearsOpen, setIsYearsOpen] = useState(false);
+    const [isPriceOpen, setIsPriceOpen] = useState(true);
     // State for filter values
     const [selectedCategory, setSelectedCategory] = useState("All Genres");
     const [selectedFormat, setSelectedFormat] = useState("All Format");
     const [selectedYear, setSelectedYear] = useState("");
     const [priceRange, setPriceRange] = useState([0, 500]);
+    const [publisherSearch, setPublisherSearch] = useState("");
 
     const categories = [
         "All Genres",
-        "Arts & Photography",
-        "Biography & Memory",
-        "Children's Book",
-        "Cookbook & Food",
+        "Fiction",
+        "Self Development",
+        "Children's Books",
+        "Cookbooks, Food & Wine",
         "History",
         "Literature & Fiction",
         "Romance",
-        "SciFi & Fantasy",
-        "Teen & Young Adult",
+        "Science Fiction & Fantasy",
+        "Other",
     ];
+
 
     const bookFormats = [
         "All Format",
@@ -53,11 +56,14 @@ const TextBook = () => {
     useEffect(() => {
         const fetchTextbooks = async () => {
             try {
+                setLoading(true);
+                setError(null);
                 const response = await axios.get(
                     "https://bookcompass.onrender.com/api/books/getPhysicalBooks"
                 );
                 setTextbooks(response.data);
                 setLoading(false);
+                console.log(response.data)
             } catch (err) {
                 setError(err.message);
                 setLoading(false);
@@ -68,37 +74,52 @@ const TextBook = () => {
         fetchTextbooks();
     }, []);
 
+    // Get all unique publishers from textbooks
+    const publishers = [...new Set(textbooks.map(book => book.publisher))].filter(Boolean);
+
     // Filter textbooks based on selected filters
     const filteredTextbooks = textbooks.filter((book) => {
+        // 1. Category match
         const matchesCategory =
             selectedCategory === "All Genres" || book.category === selectedCategory;
 
-        // Handle format filtering
-        let matchesFormat = true;
-        if (selectedFormat !== "All Format") {
-            if (selectedFormat === "Hard Cover") {
-                matchesFormat = book.format?.hardcover !== undefined;
-            } else if (selectedFormat === "Paper Back") {
-                matchesFormat = book.format?.paperback !== undefined;
-            } else if (selectedFormat === "E-Book") {
-                matchesFormat = book.format?.ebook !== undefined;
-            } else if (selectedFormat === "Large Print") {
-                matchesFormat = book.format?.largePrint !== undefined;
-            }
-        }
+        // 2. Format match (based on isDigital, isAudiobook, and basic physical fallback)
+        const matchesFormat =
+            selectedFormat === "All Format" ||
+            (selectedFormat === "E-Book" && book.isDigital) ||
+            (selectedFormat === "Audiobook" && book.isAudiobook) ||
+            (selectedFormat === "Hard Cover" && !book.isDigital && !book.isAudiobook) || // physical fallback
+            (selectedFormat === "Paper Back" && !book.isDigital && !book.isAudiobook);  // optional, if you differentiate
 
-        const matchesYear = !selectedYear || book.year?.toString() === selectedYear;
+        // 3. Year match (if year is present)
+        const matchesYear =
+            !selectedYear || book.year?.toString() === selectedYear;
 
-        // Get the lowest available price for the book
-        const bookPrice = Math.min(
-            ...Object.values(book.format || {}).filter(val => typeof val === 'number')
-        );
-
+        // 4. Price match using flat `price` field
+        const validPrice =
+            typeof book.price === "number" && !isNaN(book.price) && isFinite(book.price);
         const matchesPrice =
-            bookPrice >= priceRange[0] && bookPrice <= priceRange[1];
+            validPrice && book.price >= priceRange[0] && book.price <= priceRange[1];
 
-        return matchesCategory && matchesFormat && matchesYear && matchesPrice;
+        // 5. Publisher match (case-insensitive)
+        const matchesPublisher =
+            !publisherSearch ||
+            (book.publisher &&
+                book.publisher.toLowerCase().includes(publisherSearch.toLowerCase()));
+
+        // Final condition
+        return (
+            matchesCategory &&
+            matchesFormat &&
+            matchesYear &&
+            matchesPrice &&
+            matchesPublisher
+        );
     });
+
+
+
+
 
     // Reset filters
     const resetFilters = () => {
@@ -106,17 +127,20 @@ const TextBook = () => {
         setSelectedFormat("All Format");
         setSelectedYear("");
         setPriceRange([0, 500]);
+        setPublisherSearch("");
     };
 
     // Format price with 2 decimal places
     const formatPrice = (price) => {
-        return typeof price === 'number' ? price.toFixed(2) : '0.00';
+        const parsed = parseFloat(price);
+        return !isNaN(parsed) && isFinite(parsed) ? parsed.toFixed(2) : '0.00';
     };
+
 
     // Loading skeleton component
     const LoadingSkeleton = () => (
         <div className="space-y-8">
-            {[...Array(3)].map((_, index) => (
+            {[...Array(6)].map((_, index) => (
                 <div key={index} className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6 border-b border-gray-200 pb-6 sm:pb-8">
                     <Skeleton width={128} height={192} className="rounded-md" />
                     <div className="flex-1">
@@ -130,6 +154,22 @@ const TextBook = () => {
             ))}
         </div>
     );
+
+    // Handle price range change
+    const handlePriceChange = (index, value) => {
+        const newPriceRange = [...priceRange];
+        newPriceRange[index] = parseInt(value);
+
+        // Ensure min doesn't exceed max
+        if (index === 0 && newPriceRange[0] > newPriceRange[1]) {
+            newPriceRange[1] = newPriceRange[0];
+        }
+        if (index === 1 && newPriceRange[1] < newPriceRange[0]) {
+            newPriceRange[0] = newPriceRange[1];
+        }
+
+        setPriceRange(newPriceRange);
+    };
 
     return (
         <Layout>
@@ -264,8 +304,33 @@ const TextBook = () => {
                                     <input
                                         type="text"
                                         placeholder="Search Publisher..."
+                                        value={publisherSearch}
+                                        onChange={(e) => setPublisherSearch(e.target.value)}
                                         className="w-full p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 text-sm"
                                     />
+                                    <div className="max-h-40 overflow-y-auto mt-2">
+                                        {publishers
+                                            .filter(publisher =>
+                                                publisher.toLowerCase().includes(publisherSearch.toLowerCase()))
+                                            .map((publisher, index) => (
+                                                <div key={index} className="flex items-center gap-2 py-1">
+                                                    <input
+                                                        type="checkbox"
+                                                        id={`publisher-${index}`}
+                                                        checked={publisherSearch === publisher}
+                                                        onChange={() => setPublisherSearch(publisher)}
+                                                        className="text-gray-600 focus:ring-gray-500"
+                                                    />
+                                                    <label
+                                                        htmlFor={`publisher-${index}`}
+                                                        className="text-gray-600 text-sm cursor-pointer hover:text-gray-800 transition-colors"
+                                                    >
+                                                        {publisher}
+                                                    </label>
+                                                </div>
+                                            ))
+                                        }
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -273,7 +338,7 @@ const TextBook = () => {
                         {/* Years */}
                         <div className="mb-6">
                             <div className="flex justify-between items-center mb-4">
-                                <h4 className="text-lg font-semibold text-gray-800">Years</h4>
+                                <h4 className="text-lg font-semibold text-gray-800">Year</h4>
                                 <button
                                     onClick={() => setIsYearsOpen(!isYearsOpen)}
                                     className="text-gray-600"
@@ -305,40 +370,65 @@ const TextBook = () => {
 
                         {/* Price Range */}
                         <div className="mb-6">
-                            <h4 className="text-lg font-semibold text-gray-800 mb-4">
-                                Price Range
-                            </h4>
-                            <div className="px-2">
-                                <div className="flex justify-between mb-2">
-                                    <span className="text-gray-600 text-sm">${priceRange[0]}</span>
-                                    <span className="text-gray-600 text-sm">${priceRange[1]}</span>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <input
-                                        type="range"
-                                        min="0"
-                                        max="500"
-                                        step="5"
-                                        value={priceRange[0]}
-                                        onChange={(e) =>
-                                            setPriceRange([parseInt(e.target.value), priceRange[1]])
-                                        }
-                                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                                    />
-                                    <span className="text-gray-400">-</span>
-                                    <input
-                                        type="range"
-                                        min="0"
-                                        max="500"
-                                        step="5"
-                                        value={priceRange[1]}
-                                        onChange={(e) =>
-                                            setPriceRange([priceRange[0], parseInt(e.target.value)])
-                                        }
-                                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                                    />
-                                </div>
+                            <div className="flex justify-between items-center mb-4">
+                                <h4 className="text-lg font-semibold text-gray-800">
+                                    Price Range
+                                </h4>
+                                <button
+                                    onClick={() => setIsPriceOpen(!isPriceOpen)}
+                                    className="text-gray-600"
+                                >
+                                    {isPriceOpen ? (
+                                        <IoIosArrowUp className="text-2xl" />
+                                    ) : (
+                                        <IoIosArrowDown className="text-2xl" />
+                                    )}
+                                </button>
                             </div>
+                            {isPriceOpen && (
+                                <div className="px-2">
+                                    <div className="flex justify-between mb-2">
+                                        <span className="text-gray-600 text-sm">${priceRange[0]}</span>
+                                        <span className="text-gray-600 text-sm">${priceRange[1]}</span>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-gray-400 text-sm">Min:</span>
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max="500"
+                                                step="5"
+                                                value={priceRange[0]}
+                                                onChange={(e) => handlePriceChange(0, e.target.value)}
+                                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                            />
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-gray-400 text-sm">Max:</span>
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max="500"
+                                                step="5"
+                                                value={priceRange[1]}
+                                                onChange={(e) => handlePriceChange(1, e.target.value)}
+                                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 mt-4">
+                                        <div className="bg-gray-100 p-2 rounded text-center">
+                                            <span className="text-xs text-gray-600">Min: </span>
+                                            <span className="font-medium">${priceRange[0]}</span>
+                                        </div>
+                                        <div className="bg-gray-100 p-2 rounded text-center">
+                                            <span className="text-xs text-gray-600">Max: </span>
+                                            <span className="font-medium">${priceRange[1]}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Buttons */}
@@ -366,7 +456,7 @@ const TextBook = () => {
                             TEXTBOOKS
                         </h2>
                         <div className="text-sm text-gray-600">
-                            Showing {filteredTextbooks.length} of {textbooks.length} books
+                            {loading ? "Loading..." : `Showing ${filteredTextbooks.length} of ${textbooks.length} books`}
                         </div>
                     </div>
 
@@ -386,66 +476,71 @@ const TextBook = () => {
                             </div>
                         </div>
                     ) : filteredTextbooks.length > 0 ? (
-                        <div className="space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                             {filteredTextbooks.map((book) => {
                                 // Get the lowest available price for the book
-                                const bookPrice = Math.min(
-                                    ...Object.values(book.format || {}).filter(val => typeof val === 'number')
-                                );
+                                const prices = Object.values(book.format || {})
+                                    .filter(val => typeof val === 'number' && val > 0);
+
+                                const bookPrice = prices.length > 0 ? Math.min(...prices) : 0;
+
+                                // Get available formats
+                                const availableFormats = Object.entries(book.format || {})
+                                    .filter(([_, price]) => typeof price === 'number' && price > 0)
+                                    .map(([format]) => format);
 
                                 return (
                                     <Link
                                         to={`/textbooks/${book._id || book.id}`}
                                         key={book._id || book.id}
-                                        className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6 border-b border-gray-200 pb-6 sm:pb-8 hover:bg-gray-50 transition-all duration-300 p-4 rounded-lg"
+                                        className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300"
                                     >
-                                        <div className="w-24 sm:w-32 h-36 sm:h-48 flex-shrink-0">
+                                        <div className="h-48 bg-gray-100 flex items-center justify-center">
                                             <img
-                                                src={book.image || "https://via.placeholder.com/128x192?text=No+Image"}
+                                                src={book.imageUrl || "https://via.placeholder.com/128x192?text=No+Image"}
                                                 alt={book.title}
-                                                className="w-full h-full object-contain rounded-md shadow-sm"
+                                                className="h-40 w-auto object-contain"
                                                 onError={(e) => {
                                                     e.target.src = "https://via.placeholder.com/128x192?text=No+Image";
                                                 }}
                                             />
                                         </div>
-                                        <div className="flex-1">
-                                            <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-1 hover:text-gray-600 transition-colors">
-                                                {book.title}
+                                        <div className="p-4">
+                                            <h3 className="text-lg font-semibold text-gray-800 mb-1 hover:text-gray-600 transition-colors line-clamp-2">
+                                                {book?.title}
                                             </h3>
                                             <p className="text-sm text-gray-600 mb-2">by {book.author || "Unknown Author"}</p>
-                                            <div className="flex items-center gap-2 mb-3">
-                                                <p className="text-base sm:text-lg font-bold text-gray-800">
-                                                    ${formatPrice(bookPrice)}
+
+                                            <div className="flex justify-between items-center mb-3">
+                                                <p className="text-lg font-bold text-gray-800">
+                                                    ${Number(book.price).toFixed(2)}
                                                 </p>
-                                                {book.format?.hardcover && (
-                                                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                                                        Hardcover: ${formatPrice(book.format.hardcover)}
-                                                    </span>
-                                                )}
-                                                {book.format?.paperback && (
-                                                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                                                        Paperback: ${formatPrice(book.format.paperback)}
-                                                    </span>
-                                                )}
+
+
+                                                {/* <div className="text-xs text-gray-500">
+                                                    {book.year || "N/A"}
+                                                </div> */}
                                             </div>
-                                            <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                                                {book.description || "No description available."}
-                                            </p>
+
                                             <div className="flex flex-wrap gap-2 mb-3">
                                                 {book.category && (
                                                     <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
                                                         {book.category}
                                                     </span>
                                                 )}
-                                                {book.year && (
-                                                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                                                        {book.year}
+                                                {availableFormats.map((format, index) => (
+                                                    <span key={index} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                                                        {format}
                                                     </span>
-                                                )}
+                                                ))}
                                             </div>
-                                            <button className="bg-gray-800 text-white font-semibold py-2 px-4 sm:px-6 rounded-md hover:bg-gray-900 transition shadow-sm">
-                                                See Details
+
+                                            <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                                                {book.description || "No description available."}
+                                            </p>
+
+                                            <button className="w-full bg-gray-800 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-900 transition shadow-sm">
+                                                View Details
                                             </button>
                                         </div>
                                     </Link>

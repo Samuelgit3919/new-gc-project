@@ -120,6 +120,7 @@ const Ebook = () => {
                                                     <img
                                                         src={ebook.imageUrl}
                                                         alt={ebook.title}
+                                                        loading="lazy"
                                                         className="object-cover w-full h-full transition-transform hover:scale-105"
                                                         onError={(e) => {
                                                             e.target.src = "/placeholder-cover.jpg"

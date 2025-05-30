@@ -63,13 +63,27 @@ function BookManagementView({ searchQuery, setSearchQuery }) {
             const res = await fetch(`${API_BASE_URL}/getBook/myBooks`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
+
             if (!res.ok) {
                 const errorData = await res.json();
+                // Handle empty responses gracefully
+                if (res.status === 404) {
+                    setBooks([]);
+                    setFilteredBooks([]);
+                    setBookIds([]);
+                    setError("No books found");
+                    return;
+                }
                 throw new Error(errorData.message || "Failed to fetch books");
             }
-            const data = await res.json();
 
+            const data = await res.json();
             const booksArray = Array.isArray(data.data) ? data.data : [];
+
+            if (booksArray.length === 0) {
+                setError("No books found");
+            }
+
             const validBooks = booksArray.filter((book) => book._id);
             const extractedIds = validBooks.map(book => book._id);
 
@@ -148,7 +162,7 @@ function BookManagementView({ searchQuery, setSearchQuery }) {
             toast.error(err.message);
             throw err; // Re-throw to allow component to handle it
         }
-      };
+    };
 
     // Update an existing book
     const updateBook = async (id, bookData) => {
@@ -360,6 +374,34 @@ function BookManagementView({ searchQuery, setSearchQuery }) {
     }
 
     if (error) {
+        // Check if the error is specifically about no books
+        if (error.includes("No books found") || books.length === 0) {
+            return (
+                <div className="space-y-6">
+                    {/* Header and Add Book Button */}
+                    <div className="flex items-center justify-between">
+                        <h1 className="text-2xl font-bold">Book Management</h1>
+                        <Button onClick={openAddDialog} disabled={loading}>
+                            <Plus className="mr-2 h-4 w-4" /> Add Book
+                        </Button>
+                    </div>
+
+                    {/* Empty state */}
+                    <div className="rounded-md border bg-white p-8 text-center">
+                        <p className="text-gray-500">0 books found</p>
+                        <Button
+                            onClick={fetchBooks}
+                            variant="outline"
+                            className="mt-4"
+                        >
+                            Refresh
+                        </Button>
+                    </div>
+                </div>
+            );
+        }
+
+        // For other errors, show the error message
         return (
             <div className="text-center h-64 flex flex-col items-center justify-center gap-4">
                 <p className="text-red-500">{error}</p>
@@ -367,6 +409,8 @@ function BookManagementView({ searchQuery, setSearchQuery }) {
             </div>
         );
     }
+
+
 
     return (
         <div className="space-y-6">

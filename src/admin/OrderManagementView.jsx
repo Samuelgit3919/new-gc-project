@@ -33,34 +33,41 @@ function OrderManagementView({ searchQuery, setSearchQuery }) {
 
     // Fetch orders from API
     const fetchOrders = async () => {
-        setLoading(true)
-        setError(null)
-        const token = localStorage.getItem("token")
+        setLoading(true);
+        setError(null);
+        const token = localStorage.getItem("token");
+
         if (!token) {
-            setError("Authentication required. Please log in.")
-            setLoading(false)
-            return
+            setError("Authentication required. Please log in.");
+            setLoading(false);
+            return;
         }
 
         try {
-            const response = await fetch("https://bookcompass.onrender.com/api/order/getOrder", { // Changed endpoint
+            const response = await fetch("https://bookcompass.onrender.com/api/order/getOrder", { // Replace with correct endpoint
                 headers: {
                     Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json"
-                }
-            })
-
+                    "Content-Type": "application/json",
+                },
+            });
 
             if (!response.ok) {
-                const errorData = await response.json()
-                throw new Error(errorData.message || "Failed to fetch orders")
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Failed to fetch orders");
             }
 
-            const data = await response.json()
-            console.log(data)
+            const data = await response.json();
 
-            // Transform the API response to match our frontend structure
-            const formattedOrders = data.map(order => ({
+            // Handle empty response
+            if (!data || data.length === 0) {
+                setOrders([]);
+                setFilteredOrders([]);
+                setLoading(false);
+                return;
+            }
+
+            // Transform the API response
+            const formattedOrders = data.map((order) => ({
                 id: order._id,
                 customer: order.user?.name || "Unknown Customer",
                 email: order.user?.email || "No email",
@@ -69,19 +76,21 @@ function OrderManagementView({ searchQuery, setSearchQuery }) {
                 total: order.totalPrice || 0,
                 status: order.status || "pending",
                 books: order.items || [],
-                shippingAddress: order.shippingAddress || {}
-            }))
+                shippingAddress: order.shippingAddress || {},
+            }));
 
-            setOrders(formattedOrders)
-            setFilteredOrders(formattedOrders)
+            setOrders(formattedOrders);
+            setFilteredOrders(formattedOrders);
         } catch (err) {
-            console.error("Fetch error:", err)
-            setError(err.message || "Failed to load orders")
-            toast.error(err.message || "Failed to load orders")
+            console.error("Fetch error:", err);
+            setError("No orders found or failed to load orders.");
+            setOrders([]); // Set empty array to show "0 orders"
+            setFilteredOrders([]);
+            toast.error("No orders found or failed to load orders.");
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }
+    };
 
     // Update order status in backend
     const updateOrderStatus = async (orderId, newStatus) => {
@@ -248,7 +257,7 @@ function OrderManagementView({ searchQuery, setSearchQuery }) {
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={7} className="text-center py-4">
-                                    No orders found matching your criteria
+                                    0 orders found
                                 </TableCell>
                             </TableRow>
                         )}

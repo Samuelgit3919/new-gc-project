@@ -1,10 +1,11 @@
-import { useState } from "react"
-import { Link, useParams } from "react-router-dom"
-import { ArrowLeft, Heart, Share, Star, BookOpen, MapPin, Phone, Globe } from "lucide-react"
-import { Button } from "../../components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
-import { Badge } from "../../components/ui/badge"
-import { Separator } from "../../components/ui/separator"
+
+import { useState, useEffect } from "react";
+import { Link, useParams } from "react-router-dom";
+import { ArrowLeft, Heart, Share, Star, BookOpen, MapPin, Phone, Globe } from "lucide-react";
+import { Button } from "../../components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
+import { Badge } from "../../components/ui/badge";
+import { Separator } from "../../components/ui/separator";
 import {
     Dialog,
     DialogContent,
@@ -12,243 +13,267 @@ import {
     DialogHeader,
     DialogTitle,
     DialogFooter,
-} from "../../components/ui/dialog"
-import { Label } from "../../components/ui/label"
-import { Input } from "../../components/ui/input"
-import { Textarea } from "../../components/ui/textarea"
-import Layout from "@/Layout"
+} from "../../components/ui/dialog";
+import { Label } from "../../components/ui/label";
+import { Input } from "../../components/ui/input";
+import { Textarea } from "../../components/ui/textarea";
+import Layout from "@/Layout";
+import axios from "axios";
 
 export default function TextBookDetail() {
-    const textbooks = [
-        {
-            id: 1,
-            title: "Harriet Tubman: Live in Concert",
-            author: "Bob the Drag Queen",
-            price: 29.03,
-            image: "https://i.pinimg.com/736x/79/f3/1d/79f31d18f1620f68409ca3a2556557ab.jpg",
-            description: "The first from TV host and RuPaul's Drag Race winner Bob The Drag Queen vibes with energy and humor but never wavers in its focus on the resilience and power of Black Americans, 'made out of something stronger than steel and diamonds combined,' and the universal passion for liberation.",
-            category: "Biography & Memory",
-            format: {
-                hardcover: 29.03,
-                paperback: 29.03,
-                ebook: 39.03,
-            },
-            year: 2023,
-            shopName: "City Books",
-            length: "1.2 miles away",
-            location: "123 Main St, Downtown",
-            map: "",
-            contact: "123-456-7890",
-            website: "https://www.citybooks.com",
-            pages: 432,
-            language: "English",
-            publisher: "City Books Publishing",
-            isbn: "978-3-16-148410-0",
-            dimensions: "8.5 x 11 inches",
-            rating: 4.5,
-            reviewCount: 24,
-            featured: true,
-            relatedBooks: [2, 3],
-            reviews: [
-                {
-                    id: 1,
-                    name: "Michael R.",
-                    date: "May 15, 2023",
-                    rating: 5,
-                    title: "Engaging and thought-provoking",
-                    content: "This book exceeded my expectations. The author does an excellent job of exploring complex themes while keeping the narrative engaging.",
-                    verified: true,
-                },
-                {
-                    id: 2,
-                    name: "Sarah T.",
-                    date: "April 28, 2023",
-                    rating: 4,
-                    title: "Great read with minor issues",
-                    content: "I really enjoyed the content of this book. The ideas presented were fascinating and well-researched.",
-                    verified: true,
-                },
-            ]
-        },
-        {
-            id: 2,
-            title: "The Instability of Truth",
-            author: "Rebecca Lemov",
-            price: 30.68,
-            image: "https://i.pinimg.com/736x/70/b3/c8/70b3c8cb130c3f7638b8df28dba6c950.jpg",
-            description: "Provocative and illuminating... Lemov's deeply researched exploration reveals how the persuasive power wielded by charismatic figures can answer, in a warped way, a person's yearning for self-reinvention and meaning... Publishers Weekly, starred review.",
-            category: "History",
-            format: {
-                hardcover: 39.03,
-                paperback: 29.03,
-                ebook: 9.03,
-            },
-            year: 2022,
-            shopName: "Book Haven",
-            length: "5.8 miles away",
-            location: "456 Park Ave, Westside",
-            contact: "123-456-7890",
-            website: "https://www.bookhaven.com",
-            pages: 350,
-            language: "English",
-            publisher: "History Press",
-            isbn: "978-3-16-148411-0",
-            dimensions: "6 x 9 inches",
-            rating: 4.2,
-            reviewCount: 18,
-            relatedBooks: [1, 3],
-            reviews: [
-                {
-                    id: 1,
-                    name: "Thomas H.",
-                    date: "February 18, 2023",
-                    rating: 4,
-                    title: "A fresh take on history",
-                    content: "Rebecca Lemov has created a compelling narrative that seamlessly blends historical facts with philosophical questions.",
-                    verified: true,
-                }
-            ]
-        },
-        {
-            id: 3,
-            title: "Modern Physics for Beginners",
-            author: "Dr. Alan Stern",
-            price: 45.99,
-            image: "https://m.media-amazon.com/images/I/71QY6X2R5VL._AC_UF1000,1000_QL80_.jpg",
-            description: "A comprehensive introduction to modern physics concepts for beginners, covering quantum mechanics, relativity, and cosmology in an accessible way.",
-            category: "Science",
-            format: {
-                hardcover: 45.99,
-                paperback: 35.99,
-                ebook: 19.99,
-            },
-            year: 2023,
-            shopName: "Science Books Co.",
-            length: "3.5 miles away",
-            location: "789 Science Blvd, Tech District",
-            contact: "123-456-7890",
-            website: "https://www.sciencebooks.com",
-            pages: 512,
-            language: "English",
-            publisher: "Science Press",
-            isbn: "978-3-16-148412-0",
-            dimensions: "7 x 10 inches",
-            rating: 4.8,
-            reviewCount: 32,
-            featured: true,
-            relatedBooks: [1, 2],
-            reviews: [
-                {
-                    id: 1,
-                    name: "David L.",
-                    date: "June 10, 2023",
-                    rating: 5,
-                    title: "Excellent introduction",
-                    content: "As someone new to physics, I found this book to be incredibly well-written and accessible. The concepts are explained clearly with great examples.",
-                    verified: true,
-                },
-                {
-                    id: 2,
-                    name: "Emma S.",
-                    date: "May 22, 2023",
-                    rating: 5,
-                    title: "Perfect for self-study",
-                    content: "I've been using this book for self-study and it's been fantastic. The exercises at the end of each chapter really help reinforce the concepts.",
-                    verified: false,
-                }
-            ]
-        }
-    ]
-
-    const [isWishlisted, setIsWishlisted] = useState(false)
-    const [reviewDialogOpen, setReviewDialogOpen] = useState(false)
+    const [textbook, setTextbook] = useState(null);
+    const [relatedBooks, setRelatedBooks] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [isWishlisted, setIsWishlisted] = useState(false);
+    const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
     const [reviewFormData, setReviewFormData] = useState({
         name: "",
         email: "",
         rating: 5,
         title: "",
         review: "",
-    })
-    const [visibleReviews, setVisibleReviews] = useState(2)
-    const [selectedFormat, setSelectedFormat] = useState("hardcover")
+    });
+    const [visibleReviews, setVisibleReviews] = useState(2);
+    const [selectedFormat, setSelectedFormat] = useState("hardcover");
 
-    const { id } = useParams()
-    const textbookId = parseInt(id)
-    const textbook = textbooks.find(book => book.id === textbookId)
+    const { id } = useParams();
 
-    if (!textbook) {
-        return <div className="text-center py-12">Textbook not found</div>
+    // Fetch textbook data
+    const fetchTextbook = async () => {
+        setLoading(true);
+        setError(null);
+        const token = localStorage.getItem("token");
+
+        try {
+            const headers = {
+                "Content-Type": "application/json",
+            };
+            if (token) {
+                headers.Authorization = `Bearer ${token} `;
+            }
+
+            const response = await axios.get(
+                `https://bookcompass.onrender.com/api/books/singleBook/${id}`,
+                { headers }
+            );
+
+            const data = response.data;
+            console.log("API Response:", data);
+
+            if (!data || typeof data !== "object") {
+                throw new Error("Unexpected response format: No book data returned");
+            }
+
+            // Map API response to UI structure
+            const formattedTextbook = {
+                id: data._id || id,
+                title: data.title || "Unknown Title",
+                author: data.author || "Unknown Author",
+                price: typeof data.format === "object" ? Math.min(...Object.values(data.format)) : data.price || 0,
+                image: data.imageUrl || "https://via.placeholder.com/128x192?text=No+Image",
+                description: data.description || "No description available.",
+                category: data.category || "General",
+                format: typeof data.format === "object" ? data.format : { [data.format?.toLowerCase() || "hardcover"]: data.price || 29.99 },
+                year: data.year || new Date().getFullYear(),
+                shopName: data.shop?.name || "Unknown Bookstore",
+                length: data.length || "Nearby", // Fallback
+                location: data.shop?.location?.address || "Unknown Location",
+                map: data.shop?.location?.coordinates
+                    ? `https://maps.google.com/maps?q=${data.shop.location.coordinates[1]},${data.shop.location.coordinates[0]}&z=13&ie=UTF8&iwloc=&output=embed`
+                    : "",
+                contact: data.shop?.contact?.phoneNumber || "No phone number",
+                website: data.shop?.website || "https://www.example.com",
+                pages: data.pages || 300,
+                language: data.language || "English",
+                publisher: data.publisher || "Unknown Publisher",
+                isbn: data.isbn || "N/A",
+                dimensions: data.dimensions || "Unknown",
+                rating: data.rating || 0,
+                reviewCount: data.numReviews || 0,
+                featured: data.featured || false,
+                relatedBooks: data.relatedBooksIds || [],
+                reviews: data.reviews || [], // API may not provide reviews
+                stock: data.stock !== undefined ? data.stock : true,
+            };
+
+            setTextbook(formattedTextbook);
+
+            // Fetch related books if not provided
+            if (!data.relatedBooksIds?.length) {
+                const relatedResponse = await axios.get(
+                    "https://bookcompass.onrender.com/api/books/getPhysicalBooks",
+                    { headers }
+                );
+                const allBooks = relatedResponse.data || [];
+                const filteredRelated = allBooks
+                    .filter(book => book._id !== id && book.category === data.category)
+                    .slice(0, 5)
+                    .map(book => ({
+                        id: book._id,
+                        title: book.title,
+                        author: book.author,
+                        image: book.imageUrl || "https://via.placeholder.com/128x192?text=No+Image",
+                        format: typeof book.format === "object" ? book.format : { hardcover: book.price || 29.99 },
+                    }));
+                setRelatedBooks(filteredRelated);
+            } else {
+                // Map relatedBooksIds to book objects
+                const relatedBooksData = await Promise.all(
+                    data.relatedBooksIds.map(async (relatedId) => {
+                        try {
+                            const relatedResponse = await axios.get(
+                                `https://bookcompass.onrender.com/api/books/singleBook/${relatedId}`,
+                                { headers }
+                            );
+                            return {
+                                id: relatedResponse.data._id,
+                                title: relatedResponse.data.title,
+                                author: relatedResponse.data.author,
+                                image: relatedResponse.data.imageUrl || "https://via.placeholder.com/128x192?text=No+Image",
+                                format: typeof relatedResponse.data.format === "object"
+                                    ? relatedResponse.data.format
+                                    : { hardcover: relatedResponse.data.price || 29.99 },
+                            };
+                        } catch {
+                            return null;
+                        }
+                    })
+                );
+                setRelatedBooks(relatedBooksData.filter(Boolean));
+            }
+        } catch (err) {
+            console.error("Fetch error:", err);
+            setError(err.message || "Failed to load textbook details.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchTextbook();
+    }, [id]);
+
+    if (loading) {
+        return (
+            <Layout>
+                <div className="container px-4 py-8 md:px-6 md:py-12">
+                    <div className="flex items-center justify-center h-64">
+                        <div className="animate-spin rounded-full h-24 w-24 border-t-2 border-b-2 border-blue-500"></div>
+                    </div>
+                </div>
+            </Layout>
+        );
+    }
+
+    if (error || !textbook) {
+        return (
+            <Layout>
+                <div className="container px-4 py-8 md:px-6 md:py-12 text-center">
+                    <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
+                    <h2 className="mt-4 text-2xl font-semibold">Textbook Not Found</h2>
+                    <p className="mt-2 text-muted-foreground">{error || "The textbook you're looking for doesn't exist or has been removed."}</p>
+                    <Button asChild className="mt-6">
+                        <Link to="/textbooks">Back to Textbooks</Link>
+                    </Button>
+                </div>
+            </Layout>
+        );
     }
 
     const showNotification = (title, description, type = "info") => {
-        alert(`${title}\n${description}`)
-        console.log(`[${type.toUpperCase()}] ${title}: ${description}`)
-    }
+        alert(`${title}\n${description}`);
+        console.log(`[${type.toUpperCase()}] ${title}: ${description}`);
+    };
 
     const handleAddToCart = () => {
-        showNotification("Added to cart", `${textbook.title} - $${textbook.format[selectedFormat].toFixed(2)} (${selectedFormat})`)
-    }
+        showNotification("Added to cart", `${textbook.title} - $${textbook.format[selectedFormat].toFixed(2)} (${selectedFormat})`);
+    };
 
     const handleBuyNow = () => {
-        showNotification("Proceeding to checkout", `Purchasing ${textbook.title} (${selectedFormat})`)
-    }
+        showNotification("Proceeding to checkout", `Purchasing ${textbook.title} (${selectedFormat})`);
+    };
 
     const handleToggleWishlist = () => {
-        setIsWishlisted(!isWishlisted)
+        setIsWishlisted(!isWishlisted);
         showNotification(
             isWishlisted ? "Removed from wishlist" : "Added to wishlist",
             textbook.title
-        )
-    }
+        );
+    };
 
     const handleShare = () => {
-        showNotification("Share link copied", "Textbook link has been copied to clipboard")
-    }
+        showNotification("Share link copied", "Textbook link has been copied to clipboard");
+    };
 
     const handleLoadMoreReviews = () => {
-        setVisibleReviews(textbook.reviews.length)
-        showNotification("All reviews loaded", "Showing all reviews for this textbook")
-    }
+        setVisibleReviews(textbook.reviews.length);
+        showNotification("All reviews loaded", "Showing all reviews for this textbook");
+    };
 
     const handleReviewInputChange = (e) => {
-        const { name, value } = e.target
+        const { name, value } = e.target;
         setReviewFormData((prev) => ({
             ...prev,
             [name]: value,
-        }))
-    }
+        }));
+    };
 
     const handleRatingChange = (rating) => {
         setReviewFormData((prev) => ({
             ...prev,
             rating,
-        }))
-    }
+        }));
+    };
 
-    const handleSubmitReview = (e) => {
-        e.preventDefault()
+    const handleSubmitReview = async (e) => {
+        e.preventDefault();
 
         if (!reviewFormData.name || !reviewFormData.email || !reviewFormData.title || !reviewFormData.review) {
-            showNotification("Missing information", "Please fill in all required fields", "error")
-            return
+            showNotification("Missing information", "Please fill in all required fields", "error");
+            return;
         }
 
-        showNotification(
-            "Review submitted",
-            "Thank you for your feedback! Your review will be published after moderation."
-        )
+        try {
+            const token = localStorage.getItem("token");
+            const headers = {
+                "Content-Type": "application/json",
+            };
+            if (token) {
+                headers.Authorization = `Bearer ${token}`;
+            }
 
-        setReviewDialogOpen(false)
-        setReviewFormData({
-            name: "",
-            email: "",
-            rating: 5,
-            title: "",
-            review: "",
-        })
-    }
+            // Placeholder for review submission API
+            // await axios.post(
+            //     `https://bookcompass.onrender.com/api/reviews`,
+            //     {
+            //         bookId: id,
+            //         name: reviewFormData.name,
+            //         email: reviewFormData.email,
+            //         rating: reviewFormData.rating,
+            //         title: reviewFormData.title,
+            //         content: reviewFormData.review,
+            //     },
+            //     { headers }
+            // );
 
-    const relatedTextbooks = textbook.relatedBooks.map((id) => textbooks.find(book => book.id === id)).filter(Boolean)
+            showNotification(
+                "Review submitted",
+                "Thank you for your feedback! Your review will be published after moderation."
+            );
+
+            setReviewDialogOpen(false);
+            setReviewFormData({
+                name: "",
+                email: "",
+                rating: 5,
+                title: "",
+                review: "",
+            });
+        } catch (err) {
+            showNotification("Error submitting review", err.message || "Failed to submit review", "error");
+        }
+    };
 
     return (
         <Layout>
@@ -267,11 +292,14 @@ export default function TextBookDetail() {
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
                     {/* Textbook Cover */}
                     <div className="flex justify-center md:col-span-1">
-                        <div className="relative aspect-[2/3] w-full max-w-[300px] overflow-hidden  dark:border-gray-800">
+                        <div className="relative aspect-[2/3] w-full max-w-[300px] overflow-hidden rounded-lg border dark:border-gray-800">
                             <img
                                 src={textbook.image}
                                 alt={`${textbook.title} cover`}
                                 className="w-full object-cover"
+                                onError={(e) => {
+                                    e.target.src = "https://via.placeholder.com/128x192?text=No+Image";
+                                }}
                             />
                             {textbook.featured && (
                                 <Badge className="absolute right-2 top-2" variant="secondary">
@@ -296,13 +324,17 @@ export default function TextBookDetail() {
                                             variant={isWishlisted ? "default" : "outline"}
                                             size="icon"
                                             onClick={handleToggleWishlist}
+                                            aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
                                         >
                                             <Heart className={`h-4 w-4 ${isWishlisted ? "fill-current" : ""}`} />
-                                            <span className="sr-only">Add to wishlist</span>
                                         </Button>
-                                        <Button variant="outline" size="icon" onClick={handleShare}>
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={handleShare}
+                                            aria-label="Share textbook"
+                                        >
                                             <Share className="h-4 w-4" />
-                                            <span className="sr-only">Share</span>
                                         </Button>
                                     </div>
                                 </div>
@@ -312,8 +344,8 @@ export default function TextBookDetail() {
                                     {[...Array(5)].map((_, i) => (
                                         <Star
                                             key={i}
-                                            className={`h-5 w-5 ${i < Math.floor(textbook.rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
-                                                }`}
+                                            className={`h-5 w-5 ${i < Math.floor(textbook.rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
+                                            aria-hidden="true"
                                         />
                                     ))}
                                     <span className="ml-2 text-sm font-medium">
@@ -340,6 +372,7 @@ export default function TextBookDetail() {
                                             key={format}
                                             variant={selectedFormat === format ? "default" : "outline"}
                                             onClick={() => setSelectedFormat(format)}
+                                            aria-label={`Select ${format} format`}
                                         >
                                             {format.charAt(0).toUpperCase() + format.slice(1)}
                                         </Button>
@@ -351,14 +384,32 @@ export default function TextBookDetail() {
                             <div className="space-y-4">
                                 <div className="flex items-baseline justify-between">
                                     <span className="text-2xl font-bold">${textbook.format[selectedFormat].toFixed(2)}</span>
-                                    <span className="text-sm text-muted-foreground">Available at {textbook.shopName}</span>
+                                    <span className="text-sm text-muted-foreground">
+                                        Available at {textbook.shopName}
+                                        {textbook.stock !== undefined && (
+                                            <span className={`ml-2 ${textbook.stock ? "text-green-600" : "text-red-600"}`}>
+                                                {textbook.stock ? "(In Stock)" : "(Out of Stock)"}
+                                            </span>
+                                        )}
+                                    </span>
                                 </div>
 
                                 <div className="flex flex-col space-y-2 sm:flex-row sm:space-x-2 sm:space-y-0">
-                                    <Button className="w-full sm:w-auto" onClick={handleAddToCart}>
+                                    <Button
+                                        className="w-full sm:w-auto"
+                                        onClick={handleAddToCart}
+                                        disabled={!textbook.stock}
+                                        aria-label="Add to cart"
+                                    >
                                         Add to Cart
                                     </Button>
-                                    <Button variant="outline" className="w-full sm:w-auto" onClick={handleBuyNow}>
+                                    <Button
+                                        variant="outline"
+                                        className="w-full sm:w-auto"
+                                        onClick={handleBuyNow}
+                                        disabled={!textbook.stock}
+                                        aria-label="Buy now"
+                                    >
                                         Buy Now
                                     </Button>
                                 </div>
@@ -373,12 +424,19 @@ export default function TextBookDetail() {
                                         </div>
                                         <div className="flex items-center">
                                             <Phone className="mr-2 h-4 w-4" />
-                                            <span>{textbook.contact}</span>
+                                            <a href={`tel:${textbook.contact.replace(/[^0-9]/g, "")}`} className="hover:underline">
+                                                {textbook.contact}
+                                            </a>
                                         </div>
                                         <div className="flex items-center">
                                             <Globe className="mr-2 h-4 w-4" />
-                                            <a href={textbook.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                                                {textbook.website}
+                                            <a
+                                                href={textbook.website}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-primary hover:underline"
+                                            >
+                                                {textbook.website.replace(/^https?:\/\//, "")}
                                             </a>
                                         </div>
                                     </div>
@@ -425,30 +483,35 @@ export default function TextBookDetail() {
                                 </TabsContent>
                                 <TabsContent value="reviews" className="mt-4">
                                     <div className="space-y-4">
-                                        {textbook.reviews.slice(0, visibleReviews).map((review) => (
-                                            <div key={review.id} className="rounded-lg border p-4">
-                                                <div className="flex items-start justify-between">
-                                                    <div>
-                                                        <div className="flex items-center space-x-1">
-                                                            {[...Array(5)].map((_, i) => (
-                                                                <Star
-                                                                    key={i}
-                                                                    className={`h-4 w-4 ${i < review.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
-                                                                />
-                                                            ))}
+                                        {textbook.reviews.length ? (
+                                            textbook.reviews.slice(0, visibleReviews).map((review) => (
+                                                <div key={review.id} className="rounded-lg border p-4">
+                                                    <div className="flex items-start justify-between">
+                                                        <div>
+                                                            <div className="flex items-center space-x-1">
+                                                                {[...Array(5)].map((_, i) => (
+                                                                    <Star
+                                                                        key={i}
+                                                                        className={`h-4 w-4 ${i < review.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
+                                                                        aria-hidden="true"
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                            <h3 className="mt-2 font-semibold">{review.title}</h3>
+                                                            <p className="mt-1 text-sm text-muted-foreground">
+                                                                By <span className="font-medium">{review.name}</span> on {review.date}
+                                                            </p>
                                                         </div>
-                                                        <h3 className="mt-2 font-semibold">{review.title}</h3>
-                                                        <p className="mt-1 text-sm text-muted-foreground">
-                                                            By <span className="font-medium">{review.name}</span> on {review.date}
-                                                        </p>
+                                                        {review.verified && <Badge variant="outline">Verified Purchase</Badge>}
                                                     </div>
-                                                    {review.verified && <Badge variant="outline">Verified Purchase</Badge>}
+                                                    <p className="mt-4 text-sm text-muted-foreground">{review.content}</p>
                                                 </div>
-                                                <p className="mt-4 text-sm text-muted-foreground">{review.content}</p>
-                                            </div>
-                                        ))}
+                                            ))
+                                        ) : (
+                                            <p className="text-muted-foreground">No reviews yet. Be the first to review this textbook!</p>
+                                        )}
                                         {visibleReviews < textbook.reviews.length && (
-                                            <Button variant="outline" onClick={handleLoadMoreReviews}>
+                                            <Button variant="outline" onClick={handleLoadMoreReviews} aria-label="Load more reviews">
                                                 Load More Reviews
                                             </Button>
                                         )}
@@ -460,27 +523,31 @@ export default function TextBookDetail() {
                 </div>
 
                 {/* Related Textbooks Section */}
-                {relatedTextbooks.length > 0 && (
+                {relatedBooks.length > 0 && (
                     <div className="mt-16">
                         <h2 className="mb-6 text-2xl font-bold tracking-tight">You May Also Like</h2>
                         <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                            {relatedTextbooks.map((relatedTextbook) => (
+                            {relatedBooks.map((relatedTextbook) => (
                                 <Link
                                     key={relatedTextbook.id}
                                     to={`/textbooks/${relatedTextbook.id}`}
                                     className="group overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-800 dark:bg-gray-950"
+                                    aria-label={`View ${relatedTextbook.title}`}
                                 >
                                     <div className="aspect-[2/3] w-full overflow-hidden">
-                                        <img
+                                        {/* <img
                                             src={relatedTextbook.image}
                                             alt={`${relatedTextbook.title} cover`}
                                             className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                                        />
+                                            onError={(e) => {
+                                                e.target.src = "https://via.placeholder.com/128x192?text=No+Image";
+                                            }}
+                                        /> */}
                                     </div>
                                     <div className="p-3">
                                         <h3 className="line-clamp-1 font-semibold">{relatedTextbook.title}</h3>
                                         <p className="text-sm text-gray-500 dark:text-gray-400">{relatedTextbook.author}</p>
-                                        <p className="mt-1 font-medium">${relatedTextbook.format.hardcover.toFixed(2)}</p>
+                                        <p className="mt-1 font-medium">${relatedTextbook.format.hardcover?.toFixed(2) || "29.99"}</p>
                                     </div>
                                 </Link>
                             ))}
@@ -492,7 +559,11 @@ export default function TextBookDetail() {
                 <div className="mt-16">
                     <div className="flex items-center justify-between">
                         <h2 className="text-2xl font-bold tracking-tight">Customer Reviews</h2>
-                        <Button variant="outline" onClick={() => setReviewDialogOpen(true)}>
+                        <Button
+                            variant="outline"
+                            onClick={() => setReviewDialogOpen(true)}
+                            aria-label="Write a review"
+                        >
                             Write a Review
                         </Button>
                     </div>
@@ -518,6 +589,7 @@ export default function TextBookDetail() {
                                     onChange={handleReviewInputChange}
                                     placeholder="John Doe"
                                     required
+                                    aria-required="true"
                                 />
                             </div>
 
@@ -531,6 +603,7 @@ export default function TextBookDetail() {
                                     onChange={handleReviewInputChange}
                                     placeholder="john.doe@example.com"
                                     required
+                                    aria-required="true"
                                 />
                                 <p className="text-xs text-muted-foreground">Your email will not be published</p>
                             </div>
@@ -544,10 +617,10 @@ export default function TextBookDetail() {
                                             type="button"
                                             onClick={() => handleRatingChange(rating)}
                                             className="focus:outline-none"
+                                            aria-label={`Rate ${rating} stars`}
                                         >
                                             <Star
-                                                className={`h-6 w-6 ${rating <= reviewFormData.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
-                                                    }`}
+                                                className={`h-6 w-6 ${rating <= reviewFormData.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
                                             />
                                         </button>
                                     ))}
@@ -563,6 +636,7 @@ export default function TextBookDetail() {
                                     onChange={handleReviewInputChange}
                                     placeholder="Summarize your thoughts"
                                     required
+                                    aria-required="true"
                                 />
                             </div>
 
@@ -576,19 +650,27 @@ export default function TextBookDetail() {
                                     placeholder="What did you like or dislike about this textbook?"
                                     rows={5}
                                     required
+                                    aria-required="true"
                                 />
                             </div>
 
                             <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setReviewDialogOpen(false)}>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setReviewDialogOpen(false)}
+                                    aria-label="Cancel review"
+                                >
                                     Cancel
                                 </Button>
-                                <Button type="submit">Submit Review</Button>
+                                <Button type="submit" aria-label="Submit review">
+                                    Submit Review
+                                </Button>
                             </DialogFooter>
                         </form>
                     </DialogContent>
                 </Dialog>
             </div>
         </Layout>
-    )
+    );
 }

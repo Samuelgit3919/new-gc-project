@@ -1,3 +1,5 @@
+"use client";
+
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, MapPin, Phone, Mail, Globe, Star, Calendar, ChevronRight, BookOpen } from "lucide-react";
 import { Button } from "../../components/ui/button";
@@ -7,230 +9,159 @@ import { Textarea } from "../../components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { Badge } from "../../components/ui/badge";
 import Layout from "../../Layout";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 const ShopDetail = () => {
     const { id } = useParams();
+    const [store, setStore] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    // Sample data - in a real app, you'd fetch this from an API
-    const bookStores = [
-        {
-            id: 1,
-            name: "ADDIS LIBRARY",
-            tagline: "Your literary gateway since 1995",
-            description: "Addis Library is a premier bookstore with a wide collection of local and international books, serving the community with quality literature and a welcoming atmosphere.",
-            image: "https://images.unsplash.com/photo-1589998059171-988d887df646",
-            logo: "https://images.unsplash.com/photo-1575470888645-5c5e277247b0",
-            address: "Bole Road, Addis Ababa, Ethiopia",
-            phone: "+251114678910",
-            email: "info@addislibrary.com",
-            website: "https://www.addislibrary.com",
-            rating: 4.5,
-            reviewCount: 128,
-            distance: "1.2 km",
-            features: ["Café", "Reading Area", "Author Events", "Children's Corner", "Free Wi-Fi", "Book Club"],
-            hours: [
-                { day: "Monday", hours: "9:00 AM - 6:00 PM" },
-                { day: "Tuesday", hours: "9:00 AM - 6:00 PM" },
-                { day: "Wednesday", hours: "9:00 AM - 6:00 PM" },
-                { day: "Thursday", hours: "9:00 AM - 6:00 PM" },
-                { day: "Friday", hours: "9:00 AM - 8:00 PM" },
-                { day: "Saturday", hours: "10:00 AM - 4:00 PM" },
-                { day: "Sunday", hours: "Closed" }
-            ],
-            inventory: [
-                {
-                    id: 101,
-                    title: "The Silent Echo",
-                    author: "Emily Richards",
-                    price: 18.99,
-                    cover: "https://images.unsplash.com/photo-1544947950-fa07a98d237f",
-                    inStock: true,
-                    description: "A gripping novel about secrets and redemption across generations in contemporary Ethiopia.",
-                    genre: "Literary Fiction",
-                    pages: 320,
-                    publisher: "Addis Ababa Press",
-                    isbn: "978-1234567890",
-                    rating: 4.3,
-                    publishDate: "2023-03-15",
-                    language: "English"
-                },
-                {
-                    id: 102,
-                    title: "Beyond the Horizon",
-                    author: "Michael Chen",
-                    price: 15.99,
-                    cover: "https://images.unsplash.com/photo-1541963463532-d68292c34b19",
-                    inStock: true,
-                    description: "An adventure story exploring uncharted territories of the Ethiopian highlands.",
-                    genre: "Adventure",
-                    pages: 280,
-                    publisher: "Horizon Press",
-                    isbn: "978-0987654321",
-                    rating: 4.1,
-                    publishDate: "2022-11-10",
-                    language: "English"
-                },
-                {
-                    id: 103,
-                    title: "Whispers in the Dark",
-                    author: "Sarah Johnson",
-                    price: 12.99,
-                    cover: "https://images.unsplash.com/photo-1629992101753-56d196c8aabb",
-                    inStock: true,
-                    description: "A psychological thriller set in Addis Ababa's historic neighborhoods.",
-                    genre: "Thriller",
-                    pages: 350,
-                    publisher: "Dark Alley Books",
-                    isbn: "978-1122334455",
-                    rating: 4.5,
-                    publishDate: "2023-01-20",
-                    language: "English"
+    useEffect(() => {
+        const fetchStoreDetails = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                const token = localStorage.getItem("token");
+                const headers = {
+                    "Content-Type": "application/json",
+                };
+                if (token) {
+                    headers.Authorization = `Bearer ${token}`;
                 }
-            ],
-            events: [
-                {
-                    id: 1,
-                    title: "Author Reading Night",
-                    date: "Every Friday",
-                    time: "6:00 PM - 8:00 PM",
-                    description: "Join us for readings from local authors with Q&A sessions and book signings.",
-                    featured: true,
-                    image: "https://images.unsplash.com/photo-1507842217343-583bb7270b66"
-                },
-                {
-                    id: 2,
-                    title: "Children's Story Hour",
-                    date: "Every Saturday",
-                    time: "11:00 AM - 12:00 PM",
-                    description: "Interactive story sessions for kids aged 3-10 with creative activities.",
-                    featured: false,
-                    image: "https://images.unsplash.com/photo-1579280960509-42a7b7e1f8a1"
-                }
-            ],
-            reviews: [
-                {
-                    id: 1,
-                    name: "Selam T.",
-                    date: "2023-05-15",
-                    rating: 5,
-                    content: "The best selection of books in Addis! The staff are incredibly knowledgeable and the café makes it perfect for spending an afternoon reading."
-                },
-                {
-                    id: 2,
-                    name: "Yohannes K.",
-                    date: "2023-04-22",
-                    rating: 4,
-                    content: "Great atmosphere and good selection, though I wish they stayed open later on weekdays."
-                }
-            ]
-        },
-        {
-            id: 2,
-            name: "AFRICA BOOK STORE",
-            tagline: "Celebrating African literature",
-            description: "Specializing in African literature and academic texts, with a focus on Ethiopian authors and pan-African perspectives.",
-            image: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f",
-            logo: "https://images.unsplash.com/photo-1600189261867-30c5a6046d6a",
-            address: "Piazza District, Addis Ababa",
-            phone: "+251111112222",
-            email: "contact@africabookstore.com",
-            website: "https://www.africabookstore.com",
-            rating: 4.6,
-            reviewCount: 89,
-            distance: "2.5 km",
-            features: ["African Literature", "Academic Texts", "Rare Books", "Book Club", "Author Signings"],
-            hours: [
-                { day: "Monday", hours: "8:30 AM - 7:00 PM" },
-                { day: "Tuesday", hours: "8:30 AM - 7:00 PM" },
-                { day: "Wednesday", hours: "8:30 AM - 7:00 PM" },
-                { day: "Thursday", hours: "8:30 AM - 7:00 PM" },
-                { day: "Friday", hours: "8:30 AM - 8:00 PM" },
-                { day: "Saturday", hours: "9:00 AM - 5:00 PM" },
-                { day: "Sunday", hours: "Closed" }
-            ],
-            inventory: [
-                {
-                    id: 201,
-                    title: "African Dawn",
-                    author: "Kwame Osei",
-                    price: 14.99,
-                    cover: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c",
-                    inStock: true,
-                    description: "A powerful story of African independence movements across the continent.",
-                    genre: "Historical Fiction",
-                    pages: 400,
-                    publisher: "Pan African Press",
-                    isbn: "978-2233445566",
-                    rating: 4.7,
-                    publishDate: "2021-09-05",
-                    language: "English"
-                },
-                {
-                    id: 202,
-                    title: "The Nile's Secret",
-                    author: "Amira Hassan",
-                    price: 16.99,
-                    cover: "https://images.unsplash.com/photo-1589998059171-988d887df646",
-                    inStock: false,
-                    description: "Archaeological mystery uncovering ancient secrets along the Nile River.",
-                    genre: "Mystery",
-                    pages: 310,
-                    publisher: "African Mysteries",
-                    isbn: "978-3344556677",
-                    rating: 4.4,
-                    publishDate: "2022-07-18",
-                    language: "English"
-                }
-            ],
-            events: [
-                {
-                    id: 1,
-                    title: "African Literature Discussion",
-                    date: "First Wednesday of month",
-                    time: "5:00 PM - 7:00 PM",
-                    description: "Monthly book club discussing contemporary African authors and themes.",
-                    featured: true,
-                    image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f"
-                }
-            ],
-            reviews: [
-                {
-                    id: 1,
-                    name: "Mekdes A.",
-                    date: "2023-06-10",
-                    rating: 5,
-                    content: "The best place to find African literature in Addis. Their selection of Ethiopian authors is unmatched."
-                }
-            ]
-        },
-        // ... (other stores with similar enhanced structure)
-    ];
 
-    // Additional enhancements for other stores would follow the same pattern
+                const response = await fetch(`https://bookcompass.onrender.com/api/bookshop/${id}`, {
+                    headers
+                });
 
-    const store = bookStores.find(store => store.id === parseInt(id));
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `Failed to fetch store details (Status: ${response.status})`);
+                }
+
+                const data = await response.json();
+                console.log("API Response:", data);
+
+                if (!data.data) {
+                    throw new Error("Store data not found in response");
+                }
+
+                // Format the store data according to the API response structure
+                const formattedStore = {
+                    id: data.data._id,
+                    name: data.data.name || "Unknown Bookstore",
+                    tagline: data.data.description || "Your literary destination",
+                    description: data.data.description || "A wonderful bookstore with a great collection",
+                    image: data.data.images?.background || "https://images.unsplash.com/photo-1589998059171-988d887df646",
+                    logo: data.data.images?.logo || "https://images.unsplash.com/photo-1575470888645-5c5e277247b0",
+                    address: data.data.location?.address || "Address not specified",
+                    coordinates: data.data.location?.coordinates || [],
+                    phone: data.data.contact?.phoneNumber || "Not available",
+                    email: data.data.contact?.email || "Not available",
+                    website: data.data.website || "",
+                    rating: data.data.averageRating || 0,
+                    numReviews: data.data.numReviews || 0,
+                    distance: "Nearby", // You might calculate this based on user location
+                    features: data.data.services || [],
+                    hours: data.data.operatingHours ? [
+                        { day: "Monday", hours: data.data.operatingHours.monday || "Closed" },
+                        { day: "Tuesday", hours: data.data.operatingHours.tuesday || "Closed" },
+                        { day: "Wednesday", hours: data.data.operatingHours.wednesday || "Closed" },
+                        { day: "Thursday", hours: data.data.operatingHours.thursday || "Closed" },
+                        { day: "Friday", hours: data.data.operatingHours.friday || "Closed" },
+                        { day: "Saturday", hours: data.data.operatingHours.saturday || "Closed" },
+                        { day: "Sunday", hours: data.data.operatingHours.sunday || "Closed" }
+                    ] : [],
+                    inventory: data.data.availableBooks?.map(book => ({
+                        id: book._id,
+                        title: book.title,
+                        author: book.author,
+                        price: book.price,
+                        cover: book.coverImage || "https://images.unsplash.com/photo-1544947950-fa07a98d237f",
+                        inStock: book.stock > 0,
+                        description: book.description,
+                        genre: book.genre,
+                        pages: book.pages,
+                        publisher: book.publisher,
+                        isbn: book.isbn,
+                        rating: book.averageRating || 0,
+                        publishDate: book.publishDate,
+                        language: book.language
+                    })) || [],
+                    events: data.data.upcomingEvents?.map(event => ({
+                        id: event._id,
+                        title: event.name,
+                        date: event.date,
+                        time: event.time,
+                        description: event.description,
+                        featured: event.featured || false,
+                        image: event.image || "https://images.unsplash.com/photo-1522202176988-66273c2fd55f"
+                    })) || [],
+                    paymentOptions: data.data.paymentOptions || [],
+                    seller: data.data.seller || {}
+                };
+
+                setStore(formattedStore);
+            } catch (err) {
+                console.error("Error fetching store details:", err);
+                setError(err.message);
+                toast.error(err.message || "Failed to load store details");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStoreDetails();
+    }, [id]);
+
+    if (loading) {
+        return (
+            <Layout>
+                <div className="container px-4 py-8 md:px-6 md:py-12">
+                    <div className="flex items-center justify-center h-64">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500" />
+                    </div>
+                </div>
+            </Layout>
+        );
+    }
+
+    if (error) {
+        return (
+            <Layout>
+                <div className="container px-4 py-8 md:px-6 md:py-12 text-center">
+                    <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
+                    <h2 className="mt-4 text-2xl font-bold">Error loading store</h2>
+                    <p className="mt-2 text-gray-600">{error}</p>
+                    <Button asChild className="mt-6">
+                        <Link to="/shopLists">Back to Bookstores</Link>
+                    </Button>
+                </div>
+            </Layout>
+        );
+    }
 
     if (!store) {
         return (
-            <div className="container px-4 py-8 md:px-6 md:py-12 text-center">
-                <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
-                <h2 className="mt-4 text-2xl font-bold">Store not found</h2>
-                <p className="mt-2 text-gray-600">The bookstore you're looking for doesn't exist or has been removed.</p>
-                <Button asChild className="mt-6">
-                    <Link to="/shopLists">Back to Bookstores</Link>
-                </Button>
-            </div>
+            <Layout>
+                <div className="container px-4 py-8 md:px-6 md:py-12 text-center">
+                    <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
+                    <h2 className="mt-4 text-2xl font-bold">Store not found</h2>
+                    <p className="mt-2 text-gray-600">The bookstore you're looking for doesn't exist or has been removed.</p>
+                    <Button asChild className="mt-6">
+                        <Link to="/shopLists">Back to Bookstores</Link>
+                    </Button>
+                </div>
+            </Layout>
         );
     }
 
     // Calculate average rating from reviews if available
-    const averageRating = store.reviews?.length
-        ? (store.reviews.reduce((sum, review) => sum + review.rating, 0) / store.reviews.length).toFixed(1)
-        : store.rating;
+    const averageRating = store.rating.toFixed(1);
 
     return (
         <Layout>
-
             <div className="container px-4 py-8 md:px-6 md:py-12">
                 <div className="mb-6">
                     <Button variant="ghost" asChild>
@@ -261,16 +192,16 @@ const ShopDetail = () => {
                                 {[...Array(5)].map((_, i) => (
                                     <Star
                                         key={i}
-                                        className={`h-5 w-5 ${i < Math.floor(averageRating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                                        className={`h-5 w-5 ${i < Math.floor(store.rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
                                             }`}
                                     />
                                 ))}
                             </div>
                             <span className="ml-2 text-sm">
-                                {averageRating} ({store.reviewCount || store.reviews?.length || 0} reviews)
+                                {averageRating} ({store.numReviews} reviews)
                             </span>
                             <span className="ml-4 text-sm flex items-center">
-                                <MapPin className="h-4 w-4 mr-1" /> {store.distance || 'Nearby'}
+                                <MapPin className="h-4 w-4 mr-1" /> {store.distance}
                             </span>
                         </div>
                     </div>
@@ -286,8 +217,8 @@ const ShopDetail = () => {
                                 <p className="mt-4 text-muted-foreground">{store.description}</p>
 
                                 <div className="mt-6 flex flex-wrap gap-2">
-                                    {store.features?.map((feature) => (
-                                        <Badge key={feature} variant="secondary" className="px-3 py-1">
+                                    {store.features?.map((feature, index) => (
+                                        <Badge key={index} variant="secondary" className="px-3 py-1">
                                             {feature}
                                         </Badge>
                                     ))}
@@ -332,11 +263,11 @@ const ShopDetail = () => {
                                                                     />
                                                                 ))}
                                                                 <span className="ml-2 text-xs text-muted-foreground">
-                                                                    {book.rating}
+                                                                    {book.rating.toFixed(1)}
                                                                 </span>
                                                             </div>
                                                             <div className="mt-2 flex justify-between items-center">
-                                                                <span className="font-medium">${book.price.toFixed(2)}</span>
+                                                                <span className="font-medium">${book.price?.toFixed(2) || '0.00'}</span>
                                                                 <span className={`text-sm ${book.inStock ? "text-green-600" : "text-red-600"}`}>
                                                                     {book.inStock ? "In Stock" : "Out of Stock"}
                                                                 </span>
@@ -411,33 +342,29 @@ const ShopDetail = () => {
 
                                 {/* Reviews Tab */}
                                 <TabsContent value="reviews" className="mt-6">
-                                    {store.reviews?.length ? (
+                                    {store.numReviews > 0 ? (
                                         <div className="space-y-6">
-                                            {store.reviews.map((review) => (
-                                                <Card key={review.id}>
-                                                    <CardContent className="p-6">
-                                                        <div className="flex items-start justify-between">
-                                                            <div>
-                                                                <div className="flex items-center space-x-1">
-                                                                    {[...Array(5)].map((_, i) => (
-                                                                        <Star
-                                                                            key={i}
-                                                                            className={`h-4 w-4 ${i < review.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
-                                                                                }`}
-                                                                        />
-                                                                    ))}
-                                                                </div>
-                                                                <div className="mt-2 flex items-center space-x-2">
-                                                                    <span className="font-medium">{review.name}</span>
-                                                                    <span className="text-sm text-muted-foreground">•</span>
-                                                                    <span className="text-sm text-muted-foreground">{review.date}</span>
-                                                                </div>
+                                            {/* In a real app, you would map through actual reviews here */}
+                                            <Card>
+                                                <CardContent className="p-6">
+                                                    <div className="flex items-start justify-between">
+                                                        <div>
+                                                            <div className="flex items-center space-x-1">
+                                                                {[...Array(5)].map((_, i) => (
+                                                                    <Star
+                                                                        key={i}
+                                                                        className={`h-4 w-4 ${i < Math.floor(store.rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                                                                            }`}
+                                                                    />
+                                                                ))}
                                                             </div>
+                                                            <p className="mt-4 text-muted-foreground">
+                                                                This store has an average rating of {averageRating} from {store.numReviews} reviews.
+                                                            </p>
                                                         </div>
-                                                        <p className="mt-4 text-muted-foreground">{review.content}</p>
-                                                    </CardContent>
-                                                </Card>
-                                            ))}
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
                                         </div>
                                     ) : (
                                         <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -456,7 +383,7 @@ const ShopDetail = () => {
                     {/* Sidebar */}
                     <div className="space-y-6">
                         {/* Store Info Card */}
-                        <Card className=" top-6">
+                        <Card className="top-6">
                             <CardContent className="p-6">
                                 <div className="flex items-center space-x-4">
                                     <div className="relative h-16 w-16 overflow-hidden rounded-full border">
@@ -472,7 +399,7 @@ const ShopDetail = () => {
                                     </div>
                                     <div>
                                         <h3 className="font-semibold">{store.name}</h3>
-                                        <p className="text-sm text-muted-foreground">{store.distance || 'Nearby'}</p>
+                                        <p className="text-sm text-muted-foreground">{store.distance}</p>
                                     </div>
                                 </div>
 
@@ -493,17 +420,19 @@ const ShopDetail = () => {
                                             {store.email}
                                         </a>
                                     </div>
-                                    <div className="flex items-start">
-                                        <Globe className="mr-3 h-5 w-5 shrink-0 text-muted-foreground" />
-                                        <a
-                                            href={`https://${store.website}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="hover:underline break-all"
-                                        >
-                                            {store.website.replace(/^https?:\/\//, '')}
-                                        </a>
-                                    </div>
+                                    {store.website && (
+                                        <div className="flex items-start">
+                                            <Globe className="mr-3 h-5 w-5 shrink-0 text-muted-foreground" />
+                                            <a
+                                                href={`https://${store.website}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="hover:underline break-all"
+                                            >
+                                                {store.website.replace(/^https?:\/\//, '')}
+                                            </a>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="mt-6">
@@ -521,7 +450,7 @@ const ShopDetail = () => {
                                 <div className="mt-6 grid grid-cols-2 gap-2">
                                     <Button variant="outline" asChild>
                                         <a
-                                            href={store.mapEmbed}
+                                            href={`https://www.google.com/maps?q=${store.coordinates[1]},${store.coordinates[0]}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="flex items-center justify-center"
