@@ -90,6 +90,7 @@ const AudioBooks = () => {
                 const response = await fetch("https://bookcompass.onrender.com/api/books/audiobooks");
                 if (!response.ok) throw new Error("Failed to fetch audiobooks.");
                 const data = await response.json();
+                console.log(data)
                 setAudiobooks(data);
             } catch (err) {
                 setError(err.message || "An error occurred.");
@@ -141,7 +142,7 @@ const AudioBooks = () => {
                                 audiobooks.map((book) => (
                                     <Link
                                         key={book.id}
-                                        to={`/audiobooks/${book.id}`}
+                                        to={`/audiobooks/${book._id}`}
                                         className="flex-shrink-0 w-32 sm:w-40 md:w-48 lg:w-52 snap-start transition-transform duration-300"
                                     >
                                         <img

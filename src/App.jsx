@@ -24,6 +24,7 @@ import TermsOfUse from './ui/Help/TermsOfUse'
 import { Type } from './Utility/action.type'
 import { DataContext } from './DataProvider/DataProvider'
 import AdminPanel from './systemAdmin/AdminPage'
+import ChapaCheckout from './ui/CheckOut/ChapaCheckout'
 
 
 
@@ -89,8 +90,12 @@ const App = () => {
         <Route path='/FaqPage' element={< FAQPage />} />
         <Route path='/contactPage' element={<ContactPage />} />
         <Route path='/termsOfUse' element={<TermsOfUse />} />
-        <Route path='*' element={<div>404 Not Found</div>} />
 
+        {/* chapa checkout */}
+        <Route path='/chapaCheckout' element={<ChapaCheckout />} />
+
+        {/* 404 Not Found */}
+        <Route path='*' element={<div>404 Not Found</div>} />
       </Routes>
     </Router>
   )

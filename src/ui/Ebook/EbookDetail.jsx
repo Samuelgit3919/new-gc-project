@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { Link, useParams } from "react-router-dom"
-import { ArrowLeft, Download, Heart, Share, Star, FileText, Laptop, Smartphone, Tablet } from "lucide-react"
+import { ArrowLeft, Download, Heart, Share, Star, FileText, Laptop, Smartphone, Tablet, BookOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
 import { Badge } from "../../components/ui/badge"
@@ -17,6 +17,13 @@ import { Label } from "../../components/ui/label"
 import { Input } from "../../components/ui/input"
 import { Textarea } from "../../components/ui/textarea"
 import Layout from "../../Layout"
+import { Document, Page } from 'react-pdf';
+import { pdfjs } from 'react-pdf';
+import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
+import 'react-pdf/dist/esm/Page/TextLayer.css';
+
+// Configure PDF worker
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 export default function EbookDetail() {
     const [isWishlisted, setIsWishlisted] = useState(false)
@@ -32,10 +39,13 @@ export default function EbookDetail() {
     const [ebook, setEbook] = useState({})
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
-    // const [relatedEbooks, setRelatedEbooks] = useState([])
+    const [isReaderOpen, setIsReaderOpen] = useState(false)
+    const [numPages, setNumPages] = useState(null);
+    const [pageNumber, setPageNumber] = useState(1);
+    const [pdfLoading, setPdfLoading] = useState(false);
+    const [pdfError, setPdfError] = useState(null);
 
     const { id } = useParams()
-    console.log(id)
 
     useEffect(() => {
         const fetchEbookData = async () => {
@@ -43,15 +53,22 @@ export default function EbookDetail() {
                 setLoading(true);
                 setError(null);
 
-                // Fetch the main ebook data
-                const response = await fetch(`https://bookcompass.onrender.com/api/books/singleBook/${id}`);
+                const token = localStorage.getItem('token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const response = await fetch(`https://bookcompass.onrender.com/api/books/singleBook/${id}`, {
+                    headers
+                });
+
+                if (response.status === 401) {
+                    throw new Error("Authentication required. Please log in.");
+                }
 
                 if (!response.ok) {
                     throw new Error(`Failed to fetch ebook. Status: ${response.status}`);
                 }
 
                 const ebookData = await response.json();
-                console.log(ebookData.data)
                 setEbook(ebookData.data);
 
                 if (!ebookData || typeof ebookData !== 'object') {
@@ -68,6 +85,18 @@ export default function EbookDetail() {
         fetchEbookData();
     }, [id]);
 
+    const getPdfUrl = (url) => {
+        if (!url) return '';
+
+        // Fix Cloudinary URL format for PDF files
+        if (url.includes('res.cloudinary.com')) {
+            return url
+                .replace('/image/upload/', '/raw/upload/')
+                .replace('/image/upload/', '/raw/upload/');
+        }
+
+        return url;
+    };
 
     const showNotification = (title, description, type = "info") => {
         if (typeof window !== "undefined") {
@@ -81,9 +110,20 @@ export default function EbookDetail() {
         showNotification("Added to cart", `${ebook.title} - $${(ebook.price || 0).toFixed(2)}`)
     }
 
-    const handleBuyNow = () => {
-        if (!ebook) return
-        showNotification("Proceeding to checkout", `Purchasing ${ebook.title}`)
+    const handleReadNow = () => {
+        if (!ebook || !ebook.fileUrl) {
+            showNotification("Error", "No file available for this eBook", "error");
+            return;
+        }
+
+        const pdfUrl = getPdfUrl(ebook.fileUrl);
+
+        // Add authentication token if needed
+        const token = localStorage.getItem('token');
+        const authenticatedUrl = token ? `${pdfUrl}?token=${token}` : pdfUrl;
+
+        // Open PDF in new tab
+        window.open(authenticatedUrl, '_blank');
     }
 
     const handleToggleWishlist = () => {
@@ -155,16 +195,24 @@ export default function EbookDetail() {
         }
 
         try {
+            const token = localStorage.getItem('token');
+            const headers = token ? {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            } : { 'Content-Type': 'application/json' };
+
             const response = await fetch(`https://bookcompass.onrender.com/api/books/${id}/reviews`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers,
                 body: JSON.stringify(reviewFormData),
             })
 
+            if (response.status === 401) {
+                throw new Error("Authentication required. Please log in.");
+            }
+
             if (!response.ok) {
-                throw new Error(`Failed to submit review: ${response.status}`)
+                throw new Error(`Failed to submit review: ${response.status}`);
             }
 
             showNotification(
@@ -172,26 +220,62 @@ export default function EbookDetail() {
                 "Thank you for your feedback! Your review will be published after moderation."
             )
 
-            // Refresh the ebook data
-            const updatedResponse = await fetch(`https://bookcompass.onrender.com/api/books/singleBook/${id}`)
+            const updatedResponse = await fetch(`https://bookcompass.onrender.com/api/books/singleBook/${id}`, {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            })
             if (!updatedResponse.ok) {
-                throw new Error('Failed to fetch updated ebook data')
+                throw new Error('Failed to fetch updated ebook data');
             }
-            const updatedData = await updatedResponse.json()
-            setEbook(updatedData)
+            const updatedData = await updatedResponse.json();
+            setEbook(updatedData.data);
 
-            setReviewDialogOpen(false)
+            setReviewDialogOpen(false);
             setReviewFormData({
                 name: "",
                 email: "",
                 rating: 5,
                 title: "",
                 review: "",
-            })
+            });
         } catch (err) {
-            console.error('Error submitting review:', err)
-            showNotification("Error", "Failed to submit review. Please try again later.", "error")
+            console.error('Error submitting review:', err);
+            showNotification("Error", err.message || "Failed to submit review. Please try again later.", "error");
         }
+    }
+
+    // PDF handling functions
+    const openEmbeddedReader = () => {
+        if (!ebook || !ebook.fileUrl) {
+            showNotification("Error", "No file available for this eBook", "error");
+            return;
+        }
+
+        setIsReaderOpen(true);
+        setPdfLoading(true);
+        setPdfError(null);
+    }
+
+    function onDocumentLoadSuccess({ numPages }) {
+        setNumPages(numPages);
+        setPdfLoading(false);
+    }
+
+    function onDocumentLoadError(error) {
+        console.error('Error loading PDF:', error);
+        setPdfError(error.message || 'Failed to load PDF document. Authentication may be required.');
+        setPdfLoading(false);
+    }
+
+    function changePage(offset) {
+        setPageNumber(prevPageNumber => Math.max(1, Math.min(prevPageNumber + offset, numPages)));
+    }
+
+    function previousPage() {
+        changePage(-1);
+    }
+
+    function nextPage() {
+        changePage(1);
     }
 
     if (loading) {
@@ -215,7 +299,12 @@ export default function EbookDetail() {
                     <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
                         <h2 className="text-xl font-bold text-red-600 mb-2">Error Loading E-book</h2>
                         <p className="text-red-500 mb-4">{error}</p>
-                        <Button asChild variant="outline">
+                        {error.includes("Authentication") && (
+                            <Button asChild className="mt-4">
+                                <Link to="/login">Login Now</Link>
+                            </Button>
+                        )}
+                        <Button asChild variant="outline" className="mt-4 ml-2">
                             <Link to="/EBook">Back to E-Books</Link>
                         </Button>
                     </div>
@@ -243,7 +332,6 @@ export default function EbookDetail() {
     return (
         <Layout>
             <div className="container px-4 py-8 md:px-6 md:py-12">
-                {/* Back button */}
                 <div className="mb-6">
                     <Button variant="ghost" size="sm" asChild>
                         <Link to="/EBook">
@@ -253,9 +341,7 @@ export default function EbookDetail() {
                     </Button>
                 </div>
 
-                {/* Main content grid */}
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-                    {/* E-Book Cover */}
                     <div className="flex justify-center md:col-span-1">
                         <div className="relative aspect-[2/3] w-full max-w-[300px] overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
                             <img
@@ -274,10 +360,8 @@ export default function EbookDetail() {
                         </div>
                     </div>
 
-                    {/* E-Book Details */}
                     <div className="md:col-span-1 lg:col-span-2">
                         <div className="space-y-6">
-                            {/* Title and actions */}
                             <div>
                                 <div className="flex flex-wrap items-start justify-between gap-2">
                                     <div>
@@ -300,13 +384,11 @@ export default function EbookDetail() {
                                     </div>
                                 </div>
 
-                                {/* Rating */}
                                 <div className="mt-4 flex items-center space-x-1">
                                     {[...Array(5)].map((_, i) => (
                                         <Star
                                             key={i}
-                                            className={`h-5 w-5 ${i < Math.floor(ebook.rating || 0) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
-                                                }`}
+                                            className={`h-5 w-5 ${i < Math.floor(ebook.rating || 0) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
                                         />
                                     ))}
                                     <span className="ml-2 text-sm font-medium">
@@ -314,7 +396,6 @@ export default function EbookDetail() {
                                     </span>
                                 </div>
 
-                                {/* Categories */}
                                 <div className="mt-4 flex flex-wrap gap-2">
                                     {ebook.categories?.map((category) => (
                                         <Link to={`/ebooks?category=${encodeURIComponent(category)}`} key={category}>
@@ -326,7 +407,6 @@ export default function EbookDetail() {
 
                             <Separator />
 
-                            {/* Price and actions */}
                             <div className="space-y-4">
                                 <div className="flex items-baseline justify-between">
                                     <span className="text-2xl font-bold">${(ebook.price || 0).toFixed(2)}</span>
@@ -337,16 +417,30 @@ export default function EbookDetail() {
                                     <Button className="w-full sm:w-auto" onClick={handleAddToCart}>
                                         Add to Cart
                                     </Button>
-                                    <Button variant="outline" className="w-full sm:w-auto" onClick={handleBuyNow}>
-                                        Buy Now
+                                    <Button
+                                        variant="outline"
+                                        className="w-full sm:w-auto"
+                                        onClick={handleReadNow}
+                                    >
+                                        <BookOpen className="mr-2 h-4 w-4" />
+                                        Read Now (New Tab)
                                     </Button>
+                                    {ebook.fileUrl && (
+                                        <Button
+                                            variant="outline"
+                                            className="w-full sm:w-auto"
+                                            onClick={openEmbeddedReader}
+                                        >
+                                            <BookOpen className="mr-2 h-4 w-4" />
+                                            Read Embedded
+                                        </Button>
+                                    )}
                                     <Button variant="outline" className="w-full sm:w-auto" onClick={handleDownloadSample}>
                                         <Download className="mr-2 h-4 w-4" />
                                         Download Sample
                                     </Button>
                                 </div>
 
-                                {/* Format details */}
                                 <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
                                     <div className="flex items-center">
                                         <FileText className="mr-1 h-4 w-4" />
@@ -363,7 +457,6 @@ export default function EbookDetail() {
                                 </div>
                             </div>
 
-                            {/* Tabs */}
                             <Tabs defaultValue="description" className="w-full">
                                 <TabsList className="grid w-full grid-cols-3">
                                     <TabsTrigger value="description">Description</TabsTrigger>
@@ -434,39 +527,6 @@ export default function EbookDetail() {
                     </div>
                 </div>
 
-                {/* Related E-Books Section */}
-                {/* {relatedEbooks.length > 0 && (
-                    <div className="mt-16">
-                        <h2 className="mb-6 text-2xl font-bold tracking-tight">You May Also Like</h2>
-                        <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                            {relatedEbooks.map((relatedEbook) => (
-                                <Link
-                                    key={relatedEbook.id}
-                                    to={`/ebooks/${relatedEbook.id}`}
-                                    className="group overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-800 dark:bg-gray-950"
-                                >
-                                    <div className="aspect-[2/3] w-full overflow-hidden">
-                                        <img
-                                            src={relatedEbook.cover || "/placeholder-cover.jpg"}
-                                            alt={`${relatedEbook.title} cover`}
-                                            className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                                            onError={(e) => {
-                                                e.target.src = "/placeholder-cover.jpg"
-                                            }}
-                                        />
-                                    </div>
-                                    <div className="p-3">
-                                        <h3 className="line-clamp-1 font-semibold">{relatedEbook.title}</h3>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">{relatedEbook.author || "Unknown Author"}</p>
-                                        <p className="mt-1 font-medium">${(relatedEbook.price || 0).toFixed(2)}</p>
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-                    </div>
-                )} */}
-
-                {/* Reviews Section */}
                 <div className="mt-16">
                     <div className="flex items-center justify-between">
                         <h2 className="text-2xl font-bold tracking-tight">Customer Reviews</h2>
@@ -517,7 +577,6 @@ export default function EbookDetail() {
                     </div>
                 </div>
 
-                {/* Write Review Dialog */}
                 <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
                     <DialogContent className="sm:max-w-[500px]">
                         <DialogHeader>
@@ -566,8 +625,7 @@ export default function EbookDetail() {
                                             aria-label={`Rate ${rating} out of 5`}
                                         >
                                             <Star
-                                                className={`h-6 w-6 ${rating <= reviewFormData.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
-                                                    }`}
+                                                className={`h-6 w-6 ${rating <= reviewFormData.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
                                             />
                                         </button>
                                     ))}
@@ -606,6 +664,126 @@ export default function EbookDetail() {
                                 <Button type="submit">Submit Review</Button>
                             </DialogFooter>
                         </form>
+                    </DialogContent>
+                </Dialog>
+
+                {/* PDF Reader Dialog */}
+                <Dialog open={isReaderOpen} onOpenChange={setIsReaderOpen}>
+                    <DialogContent className="max-w-6xl h-[90vh]">
+                        <DialogHeader>
+                            <DialogTitle>{ebook.title}</DialogTitle>
+                            <DialogDescription>
+                                by {ebook.author} • PDF Reader
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="flex-1 overflow-auto border rounded-lg bg-gray-50">
+                            {pdfLoading && (
+                                <div className="flex items-center justify-center h-full">
+                                    <div className="text-center">
+                                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+                                        <p>Loading PDF document...</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {pdfError && (
+                                <div className="text-center py-12">
+                                    <div className="text-red-500 text-lg font-medium mb-4">
+                                        Failed to load PDF: {pdfError}
+                                    </div>
+                                    <div className="flex flex-col sm:flex-row justify-center gap-2">
+                                        <Button
+                                            variant="default"
+                                            onClick={handleReadNow}
+                                            className="mb-2 sm:mb-0"
+                                        >
+                                            Open in New Tab Instead
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => {
+                                                setIsReaderOpen(false);
+                                                setPdfError(null);
+                                            }}
+                                        >
+                                            Close Viewer
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {!pdfError && ebook.fileUrl && (
+                                <div className="p-4 flex justify-center">
+                                    <Document
+                                        file={{
+                                            url: getPdfUrl(ebook.fileUrl),
+                                            httpHeaders: {
+                                                Authorization: `Bearer ${localStorage.getItem('token')}`
+                                            }
+                                        }}
+                                        onLoadSuccess={onDocumentLoadSuccess}
+                                        onLoadError={onDocumentLoadError}
+                                        loading={
+                                            <div className="flex items-center justify-center h-full">
+                                                <div className="text-center">
+                                                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+                                                    <p>Loading PDF document...</p>
+                                                </div>
+                                            </div>
+                                        }
+                                        error="Failed to load PDF"
+                                        className="flex justify-center"
+                                    >
+                                        <Page
+                                            key={`page_${pageNumber}`}
+                                            pageNumber={pageNumber}
+                                            width={Math.min(window.innerWidth * 0.8, 800)}
+                                            renderAnnotationLayer={true}
+                                            renderTextLayer={true}
+                                        />
+                                    </Document>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-4">
+                            <div className="flex items-center space-x-2">
+                                <Button
+                                    variant="outline"
+                                    onClick={previousPage}
+                                    disabled={pageNumber <= 1 || pdfLoading || pdfError}
+                                >
+                                    Previous
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={nextPage}
+                                    disabled={pageNumber >= numPages || pdfLoading || pdfError}
+                                >
+                                    Next
+                                </Button>
+                            </div>
+
+                            <p className="text-sm text-muted-foreground">
+                                Page {pageNumber} of {numPages || '?'}
+                            </p>
+
+                            <div className="flex space-x-2">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => window.open(getPdfUrl(ebook.fileUrl), '_blank')}
+                                >
+                                    Download
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={handleReadNow}
+                                >
+                                    Open in New Tab
+                                </Button>
+                            </div>
+                        </div>
                     </DialogContent>
                 </Dialog>
             </div>

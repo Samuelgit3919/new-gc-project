@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Heart, Share, Star, BookOpen, MapPin, Phone, Globe } from "lucide-react";
@@ -36,6 +35,9 @@ export default function TextBookDetail() {
     });
     const [visibleReviews, setVisibleReviews] = useState(2);
     const [selectedFormat, setSelectedFormat] = useState("hardcover");
+    const [reviews, setReviews] = useState([]); // Separate state for reviews
+    const [reviewLoading, setReviewLoading] = useState(false);
+    const [reviewError, setReviewError] = useState(null);
 
     const { id } = useParams();
 
@@ -50,7 +52,7 @@ export default function TextBookDetail() {
                 "Content-Type": "application/json",
             };
             if (token) {
-                headers.Authorization = `Bearer ${token} `;
+                headers.Authorization = `Bearer ${token}`;
             }
 
             const response = await axios.get(
@@ -58,54 +60,46 @@ export default function TextBookDetail() {
                 { headers }
             );
 
-            const data = response.data;
-            console.log("API Response:", data);
-
-            if (!data || typeof data !== "object") {
-                throw new Error("Unexpected response format: No book data returned");
+            const data = response.data?.data || response.data;
+            if (!data) {
+                throw new Error("No book data returned");
             }
 
-            // Map API response to UI structure
+            // Format the textbook data
             const formattedTextbook = {
-                id: data._id || id,
+                id: data._id,
                 title: data.title || "Unknown Title",
                 author: data.author || "Unknown Author",
-                price: typeof data.format === "object" ? Math.min(...Object.values(data.format)) : data.price || 0,
-                image: data.imageUrl || "https://via.placeholder.com/128x192?text=No+Image",
-                description: data.description || "No description available.",
+                price: data.price || 0,
+                imageUrl: data.imageUrl || "https://dummyimage.com/300x450/cccccc/000000&text=No+Image",
+                description: data.description || "No description available",
                 category: data.category || "General",
-                format: typeof data.format === "object" ? data.format : { [data.format?.toLowerCase() || "hardcover"]: data.price || 29.99 },
-                year: data.year || new Date().getFullYear(),
-                shopName: data.shop?.name || "Unknown Bookstore",
-                length: data.length || "Nearby", // Fallback
-                location: data.shop?.location?.address || "Unknown Location",
-                map: data.shop?.location?.coordinates
-                    ? `https://maps.google.com/maps?q=${data.shop.location.coordinates[1]},${data.shop.location.coordinates[0]}&z=13&ie=UTF8&iwloc=&output=embed`
-                    : "",
-                contact: data.shop?.contact?.phoneNumber || "No phone number",
-                website: data.shop?.website || "https://www.example.com",
-                pages: data.pages || 300,
-                language: data.language || "English",
-                publisher: data.publisher || "Unknown Publisher",
+                format: { hardcover: data.price || 29.99 },
+                averageRating: data.averageRating || 0,
+                numReviews: data.numReviews || 0,
                 isbn: data.isbn || "N/A",
-                dimensions: data.dimensions || "Unknown",
-                rating: data.rating || 0,
-                reviewCount: data.numReviews || 0,
-                featured: data.featured || false,
-                relatedBooks: data.relatedBooksIds || [],
-                reviews: data.reviews || [], // API may not provide reviews
-                stock: data.stock !== undefined ? data.stock : true,
+                publisher: data.publisher || "Unknown Publisher",
+                pages: data.pages || 0,
+                language: data.language || "English",
+                stock: data.stock || 0,
+                year: new Date(data.createdAt).getFullYear() || new Date().getFullYear(),
+                shopName: "BookCompass Store",
+                location: "Online",
+                contact: "+1234567890",
+                website: "https://bookcompass.onrender.com",
+                dimensions: "Unknown",
+                featured: false,
             };
 
             setTextbook(formattedTextbook);
 
-            // Fetch related books if not provided
-            if (!data.relatedBooksIds?.length) {
+            // Fetch related books
+            try {
                 const relatedResponse = await axios.get(
                     "https://bookcompass.onrender.com/api/books/getPhysicalBooks",
                     { headers }
                 );
-                const allBooks = relatedResponse.data || [];
+                const allBooks = relatedResponse.data?.data || relatedResponse.data || [];
                 const filteredRelated = allBooks
                     .filter(book => book._id !== id && book.category === data.category)
                     .slice(0, 5)
@@ -113,46 +107,69 @@ export default function TextBookDetail() {
                         id: book._id,
                         title: book.title,
                         author: book.author,
-                        image: book.imageUrl || "https://via.placeholder.com/128x192?text=No+Image",
-                        format: typeof book.format === "object" ? book.format : { hardcover: book.price || 29.99 },
+                        imageUrl: book.imageUrl || "https://dummyimage.com/300x450/cccccc/000000&text=No+Image",
+                        price: book.price || 29.99,
                     }));
                 setRelatedBooks(filteredRelated);
-            } else {
-                // Map relatedBooksIds to book objects
-                const relatedBooksData = await Promise.all(
-                    data.relatedBooksIds.map(async (relatedId) => {
-                        try {
-                            const relatedResponse = await axios.get(
-                                `https://bookcompass.onrender.com/api/books/singleBook/${relatedId}`,
-                                { headers }
-                            );
-                            return {
-                                id: relatedResponse.data._id,
-                                title: relatedResponse.data.title,
-                                author: relatedResponse.data.author,
-                                image: relatedResponse.data.imageUrl || "https://via.placeholder.com/128x192?text=No+Image",
-                                format: typeof relatedResponse.data.format === "object"
-                                    ? relatedResponse.data.format
-                                    : { hardcover: relatedResponse.data.price || 29.99 },
-                            };
-                        } catch {
-                            return null;
-                        }
-                    })
-                );
-                setRelatedBooks(relatedBooksData.filter(Boolean));
+            } catch (err) {
+                console.error("Error fetching related books:", err);
+                setRelatedBooks([]);
             }
+
         } catch (err) {
             console.error("Fetch error:", err);
-            setError(err.message || "Failed to load textbook details.");
+            setError(err.message || "Failed to load textbook details");
         } finally {
             setLoading(false);
         }
     };
 
+    // Fetch reviews for the textbook
+    const fetchReviews = async () => {
+        setReviewLoading(true);
+        setReviewError(null);
+        try {
+            const sami = await axios.get(
+                `https://bookcompass.onrender.com/api/reviews/${id}/reviews`
+            );
+            setReviews(sami.data || []);
+            console.log(sami.data);
+        } catch (err) {
+            console.error("Failed to fetch reviews:", err);
+            setReviewError("Failed to load reviews");
+        } finally {
+            setReviewLoading(false);
+        }
+    };
+    const postReview = async (reviewData) => {
+        try {
+            const token = localStorage.getItem("token");
+            const headers = {
+                "Content-Type": "application/json",
+            };
+            if (token) {
+                headers.Authorization = `Bearer ${token}`;
+            }
+            const response = await axios.post(
+                `https://bookcompass.onrender.com/api/reviews/${id}/reviews`,
+                reviewData,
+                { headers }
+            );
+            return response.data;
+        } catch (err) {
+            console.error("Error posting review:", err);
+            throw new Error(err.response?.data?.message || "Failed to post review");
+        }
+    };
+
     useEffect(() => {
         fetchTextbook();
+        fetchReviews();
+        postReview();
     }, [id]);
+
+
+
 
     if (loading) {
         return (
@@ -172,7 +189,9 @@ export default function TextBookDetail() {
                 <div className="container px-4 py-8 md:px-6 md:py-12 text-center">
                     <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
                     <h2 className="mt-4 text-2xl font-semibold">Textbook Not Found</h2>
-                    <p className="mt-2 text-muted-foreground">{error || "The textbook you're looking for doesn't exist or has been removed."}</p>
+                    <p className="mt-2 text-muted-foreground">
+                        {error || "The textbook you're looking for doesn't exist or has been removed."}
+                    </p>
                     <Button asChild className="mt-6">
                         <Link to="/textbooks">Back to Textbooks</Link>
                     </Button>
@@ -181,17 +200,17 @@ export default function TextBookDetail() {
         );
     }
 
-    const showNotification = (title, description, type = "info") => {
+    // Utility functions
+    const showNotification = (title, description) => {
         alert(`${title}\n${description}`);
-        console.log(`[${type.toUpperCase()}] ${title}: ${description}`);
     };
 
     const handleAddToCart = () => {
-        showNotification("Added to cart", `${textbook.title} - $${textbook.format[selectedFormat].toFixed(2)} (${selectedFormat})`);
+        showNotification("Added to cart", `${textbook.title} - $${textbook.price.toFixed(2)}`);
     };
 
     const handleBuyNow = () => {
-        showNotification("Proceeding to checkout", `Purchasing ${textbook.title} (${selectedFormat})`);
+        showNotification("Proceeding to checkout", `Purchasing ${textbook.title}`);
     };
 
     const handleToggleWishlist = () => {
@@ -203,12 +222,12 @@ export default function TextBookDetail() {
     };
 
     const handleShare = () => {
-        showNotification("Share link copied", "Textbook link has been copied to clipboard");
+        navigator.clipboard.writeText(window.location.href);
+        showNotification("Link copied", "Textbook link has been copied to clipboard");
     };
 
     const handleLoadMoreReviews = () => {
-        setVisibleReviews(textbook.reviews.length);
-        showNotification("All reviews loaded", "Showing all reviews for this textbook");
+        setVisibleReviews(reviews.length);
     };
 
     const handleReviewInputChange = (e) => {
@@ -228,13 +247,13 @@ export default function TextBookDetail() {
 
     const handleSubmitReview = async (e) => {
         e.preventDefault();
-
         if (!reviewFormData.name || !reviewFormData.email || !reviewFormData.title || !reviewFormData.review) {
-            showNotification("Missing information", "Please fill in all required fields", "error");
+            showNotification("Missing information", "Please fill in all required fields");
             return;
         }
 
         try {
+            setReviewLoading(true);
             const token = localStorage.getItem("token");
             const headers = {
                 "Content-Type": "application/json",
@@ -243,24 +262,28 @@ export default function TextBookDetail() {
                 headers.Authorization = `Bearer ${token}`;
             }
 
-            // Placeholder for review submission API
-            // await axios.post(
-            //     `https://bookcompass.onrender.com/api/reviews`,
-            //     {
-            //         bookId: id,
-            //         name: reviewFormData.name,
-            //         email: reviewFormData.email,
-            //         rating: reviewFormData.rating,
-            //         title: reviewFormData.title,
-            //         content: reviewFormData.review,
-            //     },
-            //     { headers }
-            // );
+            // Submit review to API
+            await axios.post(
+                `https://bookcompass.onrender.com/api/reviews/${id}/reviews`,
+                {
+                    rating: reviewFormData.rating,
+                    title: reviewFormData.title,
+                    content: reviewFormData.review,
+                    name: reviewFormData.name,
+                    email: reviewFormData.email,
+                },
+                { headers }
+            );
 
             showNotification(
                 "Review submitted",
                 "Thank you for your feedback! Your review will be published after moderation."
             );
+
+            // Refresh reviews and textbook data
+            await fetchReviews();
+            await fetchTextbook();
+            await postReview();
 
             setReviewDialogOpen(false);
             setReviewFormData({
@@ -271,7 +294,13 @@ export default function TextBookDetail() {
                 review: "",
             });
         } catch (err) {
-            showNotification("Error submitting review", err.message || "Failed to submit review", "error");
+            console.error("Error submitting review:", err);
+            showNotification(
+                "Error submitting review",
+                err.response?.data?.message || "Failed to submit review"
+            );
+        } finally {
+            setReviewLoading(false);
         }
     };
 
@@ -294,11 +323,11 @@ export default function TextBookDetail() {
                     <div className="flex justify-center md:col-span-1">
                         <div className="relative aspect-[2/3] w-full max-w-[300px] overflow-hidden rounded-lg border dark:border-gray-800">
                             <img
-                                src={textbook.image}
+                                src={textbook.imageUrl}
                                 alt={`${textbook.title} cover`}
-                                className="w-full object-cover"
+                                className="w-full h-full object-cover"
                                 onError={(e) => {
-                                    e.target.src = "https://via.placeholder.com/128x192?text=No+Image";
+                                    e.target.src = "https://dummyimage.com/300x450/cccccc/000000&text=No+Image";
                                 }}
                             />
                             {textbook.featured && (
@@ -324,16 +353,10 @@ export default function TextBookDetail() {
                                             variant={isWishlisted ? "default" : "outline"}
                                             size="icon"
                                             onClick={handleToggleWishlist}
-                                            aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
                                         >
                                             <Heart className={`h-4 w-4 ${isWishlisted ? "fill-current" : ""}`} />
                                         </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="icon"
-                                            onClick={handleShare}
-                                            aria-label="Share textbook"
-                                        >
+                                        <Button variant="outline" size="icon" onClick={handleShare}>
                                             <Share className="h-4 w-4" />
                                         </Button>
                                     </div>
@@ -344,52 +367,31 @@ export default function TextBookDetail() {
                                     {[...Array(5)].map((_, i) => (
                                         <Star
                                             key={i}
-                                            className={`h-5 w-5 ${i < Math.floor(textbook.rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
-                                            aria-hidden="true"
+                                            className={`h-5 w-5 ${i < Math.floor(textbook.averageRating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
                                         />
                                     ))}
                                     <span className="ml-2 text-sm font-medium">
-                                        {textbook.rating} ({textbook.reviewCount} reviews)
+                                        {textbook.averageRating.toFixed(1)} ({textbook.numReviews} reviews)
                                     </span>
                                 </div>
 
                                 {/* Categories */}
                                 <div className="mt-4 flex flex-wrap gap-2">
-                                    <Link to={`/textbooks?category=${encodeURIComponent(textbook.category)}`}>
-                                        <Badge variant="secondary">{textbook.category}</Badge>
-                                    </Link>
+                                    <Badge variant="secondary">{textbook.category}</Badge>
                                 </div>
                             </div>
 
                             <Separator />
 
-                            {/* Format selection */}
-                            <div className="space-y-2">
-                                <Label>Select Format</Label>
-                                <div className="flex flex-wrap gap-2">
-                                    {Object.keys(textbook.format).map(format => (
-                                        <Button
-                                            key={format}
-                                            variant={selectedFormat === format ? "default" : "outline"}
-                                            onClick={() => setSelectedFormat(format)}
-                                            aria-label={`Select ${format} format`}
-                                        >
-                                            {format.charAt(0).toUpperCase() + format.slice(1)}
-                                        </Button>
-                                    ))}
-                                </div>
-                            </div>
-
                             {/* Price and actions */}
                             <div className="space-y-4">
                                 <div className="flex items-baseline justify-between">
-                                    <span className="text-2xl font-bold">${textbook.format[selectedFormat].toFixed(2)}</span>
+                                    <span className="text-2xl font-bold">${textbook.price.toFixed(2)}</span>
                                     <span className="text-sm text-muted-foreground">
-                                        Available at {textbook.shopName}
-                                        {textbook.stock !== undefined && (
-                                            <span className={`ml-2 ${textbook.stock ? "text-green-600" : "text-red-600"}`}>
-                                                {textbook.stock ? "(In Stock)" : "(Out of Stock)"}
-                                            </span>
+                                        {textbook.stock > 0 ? (
+                                            <span className="text-green-600">In Stock ({textbook.stock} available)</span>
+                                        ) : (
+                                            <span className="text-red-600">Out of Stock</span>
                                         )}
                                     </span>
                                 </div>
@@ -398,8 +400,7 @@ export default function TextBookDetail() {
                                     <Button
                                         className="w-full sm:w-auto"
                                         onClick={handleAddToCart}
-                                        disabled={!textbook.stock}
-                                        aria-label="Add to cart"
+                                        disabled={textbook.stock <= 0}
                                     >
                                         Add to Cart
                                     </Button>
@@ -407,8 +408,7 @@ export default function TextBookDetail() {
                                         variant="outline"
                                         className="w-full sm:w-auto"
                                         onClick={handleBuyNow}
-                                        disabled={!textbook.stock}
-                                        aria-label="Buy now"
+                                        disabled={textbook.stock <= 0}
                                     >
                                         Buy Now
                                     </Button>
@@ -420,7 +420,7 @@ export default function TextBookDetail() {
                                     <div className="mt-2 space-y-2 text-sm">
                                         <div className="flex items-center">
                                             <MapPin className="mr-2 h-4 w-4" />
-                                            <span>{textbook.location} ({textbook.length})</span>
+                                            <span>{textbook.location}</span>
                                         </div>
                                         <div className="flex items-center">
                                             <Phone className="mr-2 h-4 w-4" />
@@ -483,37 +483,45 @@ export default function TextBookDetail() {
                                 </TabsContent>
                                 <TabsContent value="reviews" className="mt-4">
                                     <div className="space-y-4">
-                                        {textbook.reviews.length ? (
-                                            textbook.reviews.slice(0, visibleReviews).map((review) => (
-                                                <div key={review.id} className="rounded-lg border p-4">
-                                                    <div className="flex items-start justify-between">
-                                                        <div>
-                                                            <div className="flex items-center space-x-1">
-                                                                {[...Array(5)].map((_, i) => (
-                                                                    <Star
-                                                                        key={i}
-                                                                        className={`h-4 w-4 ${i < review.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
-                                                                        aria-hidden="true"
-                                                                    />
-                                                                ))}
+                                        {reviewLoading ? (
+                                            <div className="flex justify-center py-4">
+                                                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                                            </div>
+                                        ) : reviewError ? (
+                                            <p className="text-red-500">{reviewError}</p>
+                                        ) : reviews.length > 0 ? (
+                                            <>
+                                                {reviews.slice(0, visibleReviews).map((review, index) => (
+                                                    <div key={index} className="rounded-lg border p-4">
+                                                        <div className="flex items-start justify-between">
+                                                            <div>
+                                                                <div className="flex items-center space-x-1">
+                                                                    {[...Array(5)].map((_, i) => (
+                                                                        <Star
+                                                                            key={i}
+                                                                            className={`h-4 w-4 ${i < review.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
+                                                                        />
+                                                                    ))}
+                                                                </div>
+                                                                <h3 className="mt-2 font-semibold">{review.title || "No title"}</h3>
+                                                                <p className="mt-1 text-sm text-muted-foreground">
+                                                                    By {review.name || "Anonymous"} • {new Date(review.createdAt || new Date()).toLocaleDateString()}
+                                                                </p>
                                                             </div>
-                                                            <h3 className="mt-2 font-semibold">{review.title}</h3>
-                                                            <p className="mt-1 text-sm text-muted-foreground">
-                                                                By <span className="font-medium">{review.name}</span> on {review.date}
-                                                            </p>
                                                         </div>
-                                                        {review.verified && <Badge variant="outline">Verified Purchase</Badge>}
+                                                        <p className="mt-4 text-sm text-muted-foreground">
+                                                            {review.content || "No review content"}
+                                                        </p>
                                                     </div>
-                                                    <p className="mt-4 text-sm text-muted-foreground">{review.content}</p>
-                                                </div>
-                                            ))
+                                                ))}
+                                                {visibleReviews < reviews.length && (
+                                                    <Button variant="outline" onClick={handleLoadMoreReviews}>
+                                                        Load More Reviews
+                                                    </Button>
+                                                )}
+                                            </>
                                         ) : (
                                             <p className="text-muted-foreground">No reviews yet. Be the first to review this textbook!</p>
-                                        )}
-                                        {visibleReviews < textbook.reviews.length && (
-                                            <Button variant="outline" onClick={handleLoadMoreReviews} aria-label="Load more reviews">
-                                                Load More Reviews
-                                            </Button>
                                         )}
                                     </div>
                                 </TabsContent>
@@ -527,27 +535,26 @@ export default function TextBookDetail() {
                     <div className="mt-16">
                         <h2 className="mb-6 text-2xl font-bold tracking-tight">You May Also Like</h2>
                         <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                            {relatedBooks.map((relatedTextbook) => (
+                            {relatedBooks.map((book) => (
                                 <Link
-                                    key={relatedTextbook.id}
-                                    to={`/textbooks/${relatedTextbook.id}`}
+                                    key={book.id}
+                                    to={`/textbooks/${book.id}`}
                                     className="group overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-800 dark:bg-gray-950"
-                                    aria-label={`View ${relatedTextbook.title}`}
                                 >
                                     <div className="aspect-[2/3] w-full overflow-hidden">
-                                        {/* <img
-                                            src={relatedTextbook.image}
-                                            alt={`${relatedTextbook.title} cover`}
+                                        <img
+                                            src={book.imageUrl}
+                                            alt={`${book.title} cover`}
                                             className="h-full w-full object-cover transition-transform group-hover:scale-105"
                                             onError={(e) => {
-                                                e.target.src = "https://via.placeholder.com/128x192?text=No+Image";
+                                                e.target.src = "https://dummyimage.com/300x450/cccccc/000000&text=No+Image";
                                             }}
-                                        /> */}
+                                        />
                                     </div>
                                     <div className="p-3">
-                                        <h3 className="line-clamp-1 font-semibold">{relatedTextbook.title}</h3>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">{relatedTextbook.author}</p>
-                                        <p className="mt-1 font-medium">${relatedTextbook.format.hardcover?.toFixed(2) || "29.99"}</p>
+                                        <h3 className="line-clamp-1 font-semibold">{book.title}</h3>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">{book.author}</p>
+                                        <p className="mt-1 font-medium">${book.price.toFixed(2)}</p>
                                     </div>
                                 </Link>
                             ))}
@@ -559,11 +566,7 @@ export default function TextBookDetail() {
                 <div className="mt-16">
                     <div className="flex items-center justify-between">
                         <h2 className="text-2xl font-bold tracking-tight">Customer Reviews</h2>
-                        <Button
-                            variant="outline"
-                            onClick={() => setReviewDialogOpen(true)}
-                            aria-label="Write a review"
-                        >
+                        <Button variant="outline" onClick={() => setReviewDialogOpen(true)}>
                             Write a Review
                         </Button>
                     </div>
@@ -578,7 +581,6 @@ export default function TextBookDetail() {
                                 Share your thoughts about "{textbook.title}" by {textbook.author}
                             </DialogDescription>
                         </DialogHeader>
-
                         <form onSubmit={handleSubmitReview} className="space-y-4">
                             <div className="space-y-2">
                                 <Label htmlFor="name">Your Name</Label>
@@ -589,10 +591,8 @@ export default function TextBookDetail() {
                                     onChange={handleReviewInputChange}
                                     placeholder="John Doe"
                                     required
-                                    aria-required="true"
                                 />
                             </div>
-
                             <div className="space-y-2">
                                 <Label htmlFor="email">Email Address</Label>
                                 <Input
@@ -603,11 +603,9 @@ export default function TextBookDetail() {
                                     onChange={handleReviewInputChange}
                                     placeholder="john.doe@example.com"
                                     required
-                                    aria-required="true"
                                 />
                                 <p className="text-xs text-muted-foreground">Your email will not be published</p>
                             </div>
-
                             <div className="space-y-2">
                                 <Label>Rating</Label>
                                 <div className="flex items-center space-x-1">
@@ -617,7 +615,6 @@ export default function TextBookDetail() {
                                             type="button"
                                             onClick={() => handleRatingChange(rating)}
                                             className="focus:outline-none"
-                                            aria-label={`Rate ${rating} stars`}
                                         >
                                             <Star
                                                 className={`h-6 w-6 ${rating <= reviewFormData.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
@@ -626,7 +623,6 @@ export default function TextBookDetail() {
                                     ))}
                                 </div>
                             </div>
-
                             <div className="space-y-2">
                                 <Label htmlFor="title">Review Title</Label>
                                 <Input
@@ -636,10 +632,8 @@ export default function TextBookDetail() {
                                     onChange={handleReviewInputChange}
                                     placeholder="Summarize your thoughts"
                                     required
-                                    aria-required="true"
                                 />
                             </div>
-
                             <div className="space-y-2">
                                 <Label htmlFor="review">Your Review</Label>
                                 <Textarea
@@ -650,21 +644,27 @@ export default function TextBookDetail() {
                                     placeholder="What did you like or dislike about this textbook?"
                                     rows={5}
                                     required
-                                    aria-required="true"
                                 />
                             </div>
-
                             <DialogFooter>
                                 <Button
                                     type="button"
                                     variant="outline"
                                     onClick={() => setReviewDialogOpen(false)}
-                                    aria-label="Cancel review"
+                                    disabled={reviewLoading}
                                 >
                                     Cancel
                                 </Button>
-                                <Button type="submit" aria-label="Submit review">
-                                    Submit Review
+                                <Button
+                                    type="submit"
+                                    disabled={reviewLoading}
+                                >
+                                    {reviewLoading ? (
+                                        <div className="flex items-center">
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                            Submitting...
+                                        </div>
+                                    ) : "Submit Review"}
                                 </Button>
                             </DialogFooter>
                         </form>

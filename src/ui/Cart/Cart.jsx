@@ -204,7 +204,7 @@ export default function CartPage() {
                                     </CardContent>
                                     <CardFooter>
                                         <Button className="w-full" disabled={basket.length === 0} asChild>
-                                            <Link to="/ui/checkout">Proceed to Checkout</Link>
+                                            <Link to="/chapaCheckout">Proceed to Checkout</Link>
                                         </Button>
                                     </CardFooter>
                                 </Card>
