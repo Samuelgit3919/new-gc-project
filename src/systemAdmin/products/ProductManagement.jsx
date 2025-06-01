@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Plus, Search, MoreHorizontal } from "lucide-react"
 import { Button } from "../../components/ui/button"
 import { Card, CardContent } from "../../components/ui/card"
@@ -8,55 +8,116 @@ import { Badge } from "../../components/ui/badge"
 import { Input } from "../../components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select"
-
-const products = [
-    { id: 1, name: "The Great Gatsby", store: "Classic Books", price: 12.99, stock: 45, category: "Fiction" },
-    { id: 2, name: "To Kill a Mockingbird", store: "Classic Books", price: 14.99, stock: 32, category: "Fiction" },
-    { id: 3, name: "1984", store: "Dystopian Reads", price: 11.99, stock: 18, category: "Fiction" },
-    { id: 4, name: "The Hobbit", store: "Fantasy World", price: 16.99, stock: 27, category: "Fiction" },
-    { id: 5, name: "Sapiens", store: "Knowledge Hub", price: 24.99, stock: 15, category: "Non-Fiction" },
-    { id: 6, name: "Atomic Habits", store: "Self Help Books", price: 18.99, stock: 42, category: "Non-Fiction" },
-    {
-        id: 7,
-        name: "Harry Potter and the Sorcerer's Stone",
-        store: "Fantasy World",
-        price: 15.99,
-        stock: 53,
-        category: "Children's",
-    },
-    { id: 8, name: "The Very Hungry Caterpillar", store: "Kids Corner", price: 9.99, stock: 67, category: "Children's" },
-    {
-        id: 9,
-        name: "Calculus: Early Transcendentals",
-        store: "Academic Press",
-        price: 89.99,
-        stock: 12,
-        category: "Educational",
-    },
-    { id: 10, name: "Python Crash Course", store: "Tech Books", price: 34.99, stock: 23, category: "Educational" },
-]
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../components/ui/dialog"
+import { Label } from "../../components/ui/label"
 
 export default function ProductManagement() {
-    const [searchTerm, setSearchTerm] = useState("")
-    const [categoryFilter, setCategoryFilter] = useState("all")
-    const [storeFilter, setStoreFilter] = useState("all")
+    const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [categoryFilter, setCategoryFilter] = useState("all");
+    const [storeFilter, setStoreFilter] = useState("all");
+    const [addDialogOpen, setAddDialogOpen] = useState(false);
+    const [addForm, setAddForm] = useState({ name: "", store: "", price: "", stock: "", category: "Fiction" });
+    const [addLoading, setAddLoading] = useState(false);
+    const [addError, setAddError] = useState("");
+    const [actionLoading, setActionLoading] = useState("");
+
+    // Fetch products
+    useEffect(() => {
+        fetchProducts();
+    }, []);
+
+    const fetchProducts = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch("https://bookcompass.onrender.com/api/admin/products", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error("Failed to fetch products");
+            const data = await res.json();
+            console.log(data)
+            setProducts(Array.isArray(data.data) ? data.data : []);
+        } catch (err) {
+            setError(err.message || "Failed to load products");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAddProduct = async (e) => {
+        e.preventDefault();
+        setAddLoading(true);
+        setAddError("");
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch("https://bookcompass.onrender.com/api/admin/newProducts", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(addForm),
+            });
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.message || "Failed to add product");
+            }
+            setAddDialogOpen(false);
+            setAddForm({ name: "", store: "", price: "", stock: "", category: "Fiction" });
+            fetchProducts();
+        } catch (err) {
+            setAddError(err.message || "Failed to add product");
+        } finally {
+            setAddLoading(false);
+        }
+    };
+
+    const handleProductAction = async (productId, action) => {
+        setActionLoading(productId + action);
+        try {
+            const token = localStorage.getItem("token");
+            let url = "";
+            let method = "PUT";
+            if (action === "delete") {
+                url = `https://bookcompass.onrender.com/api/admin/products/${productId}`;
+                method = "DELETE";
+            }
+            // For edit, you would show an edit modal (not implemented here)
+            if (!url) return;
+            const res = await fetch(url, {
+                method,
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error("Action failed");
+            fetchProducts();
+        } catch (err) {
+            alert(err.message || "Action failed");
+        } finally {
+            setActionLoading("");
+        }
+    };
 
     const filteredProducts = products.filter((product) => {
-        const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase())
-        const matchesCategory = categoryFilter === "all" || product.category.toLowerCase() === categoryFilter.toLowerCase()
-        const matchesStore = storeFilter === "all" || product.store.toLowerCase().includes(storeFilter.toLowerCase())
-
-        return matchesSearch && matchesCategory && matchesStore
-    })
+        const matchesSearch = (product.name?.toLowerCase() || "").includes(searchTerm.toLowerCase());
+        const matchesCategory = categoryFilter === "all" || (product.category?.toLowerCase() || "") === categoryFilter.toLowerCase();
+        const matchesStore = storeFilter === "all" || (product.store?.toLowerCase() || "").includes(storeFilter.toLowerCase());
+        return matchesSearch && matchesCategory && matchesStore;
+    });
 
     return (
         <div className="flex flex-1 flex-col gap-4 p-4">
+            {loading && <div className="text-center py-8">Loading products...</div>}
+            {error && <div className="text-center text-red-500 py-8">{error}</div>}
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">Product Management</h2>
                     <p className="text-muted-foreground">Manage all products listed on your platform</p>
                 </div>
-                <Button className="bg-teal-600 hover:bg-teal-700">
+                <Button className="bg-teal-600 hover:bg-teal-700" onClick={() => setAddDialogOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Product
                 </Button>
@@ -78,10 +139,10 @@ export default function ProductManagement() {
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All Categories</SelectItem>
-                        <SelectItem value="fiction">Fiction</SelectItem>
-                        <SelectItem value="non-fiction">Non-Fiction</SelectItem>
-                        <SelectItem value="children's">Children's</SelectItem>
-                        <SelectItem value="educational">Educational</SelectItem>
+                        <SelectItem value="Fiction">Fiction</SelectItem>
+                        <SelectItem value="Non-Fiction">Non-Fiction</SelectItem>
+                        <SelectItem value="Children's">Children's</SelectItem>
+                        <SelectItem value="Educational">Educational</SelectItem>
                     </SelectContent>
                 </Select>
                 <Select value={storeFilter} onValueChange={setStoreFilter}>
@@ -90,9 +151,10 @@ export default function ProductManagement() {
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All Stores</SelectItem>
-                        <SelectItem value="classic">Classic Books</SelectItem>
-                        <SelectItem value="fantasy">Fantasy World</SelectItem>
-                        <SelectItem value="knowledge">Knowledge Hub</SelectItem>
+                        {/* Optionally, dynamically generate store options from products */}
+                        {Array.from(new Set(products.map(p => p.store))).map(store => (
+                            <SelectItem key={store} value={store}>{store}</SelectItem>
+                        ))}
                     </SelectContent>
                 </Select>
             </div>
@@ -112,8 +174,8 @@ export default function ProductManagement() {
                         </TableHeader>
                         <TableBody>
                             {filteredProducts.map((product) => (
-                                <TableRow key={product.id}>
-                                    <TableCell className="font-medium text-blue-600">{product.name}</TableCell>
+                                <TableRow key={product._id || product.id}>
+                                    <TableCell className="font-medium text-blue-600">{product.title}</TableCell>
                                     <TableCell className="text-blue-600">{product.store}</TableCell>
                                     <TableCell>${product.price}</TableCell>
                                     <TableCell>
@@ -131,10 +193,13 @@ export default function ProductManagement() {
                                             {product.category}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell>
-                                        <Button variant="ghost" size="sm">
-                                            <MoreHorizontal className="h-4 w-4" />
-                                        </Button>
+                                    <TableCell> 
+                                        <div className="flex gap-2">
+                                            {/* <Button variant="outline" size="sm" onClick={() => handleProductAction(product._id, "edit")}>Edit</Button> */}
+                                            <Button variant="destructive" size="sm" onClick={() => handleProductAction(product._id, "delete")} disabled={actionLoading === product._id + "delete"}>
+                                                Delete
+                                            </Button>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -142,6 +207,52 @@ export default function ProductManagement() {
                     </Table>
                 </CardContent>
             </Card>
+
+            {/* Add Product Dialog */}
+            <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+                <DialogContent className="sm:max-w-[400px]">
+                    <DialogHeader>
+                        <DialogTitle>Add New Product</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleAddProduct} className="space-y-4">
+                        {addError && <div className="bg-red-100 text-red-700 px-3 py-2 rounded text-sm">{addError}</div>}
+                        <div className="space-y-2">
+                            <Label htmlFor="name">Name</Label>
+                            <Input id="name" value={addForm.name} onChange={e => setAddForm(f => ({ ...f, name: e.target.value }))} required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="store">Store</Label>
+                            <Input id="store" value={addForm.store} onChange={e => setAddForm(f => ({ ...f, store: e.target.value }))} required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="price">Price</Label>
+                            <Input id="price" type="number" value={addForm.price} onChange={e => setAddForm(f => ({ ...f, price: e.target.value }))} required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="stock">Stock</Label>
+                            <Input id="stock" type="number" value={addForm.stock} onChange={e => setAddForm(f => ({ ...f, stock: e.target.value }))} required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="category">Category</Label>
+                            <Select value={addForm.category} onValueChange={val => setAddForm(f => ({ ...f, category: val }))}>
+                                <SelectTrigger id="category">
+                                    <SelectValue placeholder="Select category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Fiction">Fiction</SelectItem>
+                                    <SelectItem value="Non-Fiction">Non-Fiction</SelectItem>
+                                    <SelectItem value="Children's">Children's</SelectItem>
+                                    <SelectItem value="Educational">Educational</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setAddDialogOpen(false)} disabled={addLoading}>Cancel</Button>
+                            <Button type="submit" disabled={addLoading}>{addLoading ? "Adding..." : "Add Product"}</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

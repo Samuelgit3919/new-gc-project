@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useContext } from "react"
 import { Link, useParams } from "react-router-dom"
 import { ArrowLeft, Download, Heart, Share, Star, FileText, Laptop, Smartphone, Tablet, BookOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -21,6 +21,8 @@ import { Document, Page } from 'react-pdf';
 import { pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
+import { DataContext } from "@/DataProvider/DataProvider";
+import { Type } from "@/Utility/action.type";
 
 // Configure PDF worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
@@ -44,6 +46,9 @@ export default function EbookDetail() {
     const [pageNumber, setPageNumber] = useState(1);
     const [pdfLoading, setPdfLoading] = useState(false);
     const [pdfError, setPdfError] = useState(null);
+    const [zoom, setZoom] = useState(1.0);
+    const [, dispatch] = useContext(DataContext);
+    const [reviewSort, setReviewSort] = useState("date");
 
     const { id } = useParams()
 
@@ -85,6 +90,13 @@ export default function EbookDetail() {
         fetchEbookData();
     }, [id]);
 
+    useEffect(() => {
+        setPageNumber(1);
+        setZoom(1.0);
+        setPdfError(null);
+        setPdfLoading(false);
+    }, [ebook.fileUrl, isReaderOpen]);
+
     const getPdfUrl = (url) => {
         if (!url) return '';
 
@@ -106,56 +118,85 @@ export default function EbookDetail() {
     }
 
     const handleAddToCart = () => {
-        if (!ebook) return
-        showNotification("Added to cart", `${ebook.title} - $${(ebook.price || 0).toFixed(2)}`)
-    }
+        if (!ebook) return;
+        dispatch({
+            type: Type.ADD_TO_BASKET,
+            item: {
+                id: ebook._id || ebook.id,
+                title: ebook.title,
+                price: ebook.price,
+                imageUrl: ebook.imageUrl,
+                amount: 1,
+                type: "ebook",
+            },
+        });
+        // showNotification("Added to cart", `${ebook.title} - $${(ebook.price || 0).toFixed(2)}`);
+    };
 
     const handleReadNow = () => {
         if (!ebook || !ebook.fileUrl) {
             showNotification("Error", "No file available for this eBook", "error");
             return;
         }
-
         const pdfUrl = getPdfUrl(ebook.fileUrl);
-
-        // Add authentication token if needed
         const token = localStorage.getItem('token');
         const authenticatedUrl = token ? `${pdfUrl}?token=${token}` : pdfUrl;
+        window.open(authenticatedUrl, '_blank', 'noopener');
+    };
 
-        // Open PDF in new tab
-        window.open(authenticatedUrl, '_blank');
-    }
-
-    const handleToggleWishlist = () => {
-        if (!ebook) return
-        setIsWishlisted(!isWishlisted)
-        showNotification(
-            isWishlisted ? "Removed from wishlist" : "Added to wishlist",
-            ebook.title
-        )
-    }
+    const handleToggleWishlist = async () => {
+        if (!ebook) return;
+        const token = localStorage.getItem('token');
+        try {
+            if (!isWishlisted) {
+                // Add to wishlist
+                const res = await fetch('https://bookcompass.onrender.com/api/wishlist', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                    },
+                    body: JSON.stringify({ bookId: ebook._id || ebook.id }),
+                });
+                if (!res.ok) throw new Error('Failed to add to wishlist');
+                setIsWishlisted(true);
+                showNotification("Added to wishlist", ebook.title);
+            } else {
+                // Remove from wishlist
+                const res = await fetch(`https://bookcompass.onrender.com/api/wishlist/${ebook._id || ebook.id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                    },
+                });
+                if (!res.ok) throw new Error('Failed to remove from wishlist');
+                setIsWishlisted(false);
+                showNotification("Removed from wishlist", ebook.title);
+            }
+        } catch {
+            showNotification("Error", "Wishlist error", "error");
+        }
+    };
 
     const handleShare = () => {
-        if (!ebook) return
+        if (!ebook) return;
         if (navigator.share) {
             navigator.share({
                 title: ebook.title,
                 text: `Check out this ebook: ${ebook.title} by ${ebook.author}`,
                 url: window.location.href,
             }).catch(err => {
-                console.error('Error sharing:', err)
-                copyToClipboard()
-            })
+                copyToClipboard();
+            });
         } else {
-            copyToClipboard()
+            copyToClipboard();
         }
-    }
+    };
 
     const copyToClipboard = () => {
         navigator.clipboard.writeText(window.location.href)
             .then(() => showNotification("Link copied", "E-book link has been copied to clipboard"))
-            .catch(err => {
-                console.error('Failed to copy:', err)
+            .catch(() => {
                 showNotification("Error", "Failed to copy link to clipboard", "error")
             })
     }
@@ -228,6 +269,7 @@ export default function EbookDetail() {
             }
             const updatedData = await updatedResponse.json();
             setEbook(updatedData.data);
+            console.log(updatedData)
 
             setReviewDialogOpen(false);
             setReviewFormData({
@@ -257,6 +299,7 @@ export default function EbookDetail() {
 
     function onDocumentLoadSuccess({ numPages }) {
         setNumPages(numPages);
+        setPageNumber(1);
         setPdfLoading(false);
     }
 
@@ -277,6 +320,37 @@ export default function EbookDetail() {
     function nextPage() {
         changePage(1);
     }
+
+    function handleDownloadPdf() {
+        if (!ebook.fileUrl) return;
+        const url = getPdfUrl(ebook.fileUrl);
+        const token = localStorage.getItem('token');
+        fetch(url, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+        })
+            .then(response => response.blob())
+            .then(blob => {
+                const link = document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.download = ebook.title ? `${ebook.title}.pdf` : 'ebook.pdf';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            })
+            .catch(() => {
+                showNotification('Error', 'Failed to download PDF', 'error');
+            });
+    }
+
+    // Sorting for reviews
+    const sortedReviews = ebook.reviews ? [...ebook.reviews].sort((a, b) => {
+        if (reviewSort === "date") {
+            return new Date(b.date) - new Date(a.date);
+        } else if (reviewSort === "rating") {
+            return b.rating - a.rating;
+        }
+        return 0;
+    }) : [];
 
     if (loading) {
         return (
@@ -530,15 +604,21 @@ export default function EbookDetail() {
                 <div className="mt-16">
                     <div className="flex items-center justify-between">
                         <h2 className="text-2xl font-bold tracking-tight">Customer Reviews</h2>
-                        <Button variant="outline" onClick={() => setReviewDialogOpen(true)}>
-                            Write a Review
-                        </Button>
+                        <div className="flex gap-2 items-center">
+                            <select value={reviewSort} onChange={e => setReviewSort(e.target.value)} className="border rounded px-2 py-1 text-sm">
+                                <option value="date">Sort by Date</option>
+                                <option value="rating">Sort by Rating</option>
+                            </select>
+                            <Button variant="outline" onClick={() => setReviewDialogOpen(true)}>
+                                Write a Review
+                            </Button>
+                        </div>
                     </div>
 
                     <div className="mt-6 space-y-6">
-                        {ebook.reviews?.length > 0 ? (
+                        {sortedReviews.length > 0 ? (
                             <>
-                                {ebook.reviews.slice(0, visibleReviews).map((review) => (
+                                {sortedReviews.slice(0, visibleReviews).map((review) => (
                                     <div key={review.id} className="rounded-lg border border-gray-200 p-6 dark:border-gray-800">
                                         <div className="flex items-start justify-between">
                                             <div>
@@ -561,10 +641,10 @@ export default function EbookDetail() {
                                     </div>
                                 ))}
 
-                                {visibleReviews < ebook.reviews.length && (
+                                {visibleReviews < sortedReviews.length && (
                                     <div className="flex justify-center">
                                         <Button variant="outline" onClick={handleLoadMoreReviews}>
-                                            Load More Reviews ({ebook.reviews.length - visibleReviews} remaining)
+                                            Load More Reviews ({sortedReviews.length - visibleReviews} remaining)
                                         </Button>
                                     </div>
                                 )}
@@ -738,7 +818,7 @@ export default function EbookDetail() {
                                         <Page
                                             key={`page_${pageNumber}`}
                                             pageNumber={pageNumber}
-                                            width={Math.min(window.innerWidth * 0.8, 800)}
+                                            width={Math.min(window.innerWidth * 0.8 * zoom, 800 * zoom)}
                                             renderAnnotationLayer={true}
                                             renderTextLayer={true}
                                         />
@@ -765,6 +845,24 @@ export default function EbookDetail() {
                                 </Button>
                             </div>
 
+                            <div className="flex items-center space-x-2">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setZoom(z => Math.max(0.5, z - 0.1))}
+                                    disabled={zoom <= 0.5}
+                                >
+                                    -
+                                </Button>
+                                <span className="text-sm">Zoom: {(zoom * 100).toFixed(0)}%</span>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setZoom(z => Math.min(2, z + 0.1))}
+                                    disabled={zoom >= 2}
+                                >
+                                    +
+                                </Button>
+                            </div>
+
                             <p className="text-sm text-muted-foreground">
                                 Page {pageNumber} of {numPages || '?'}
                             </p>
@@ -772,7 +870,7 @@ export default function EbookDetail() {
                             <div className="flex space-x-2">
                                 <Button
                                     variant="outline"
-                                    onClick={() => window.open(getPdfUrl(ebook.fileUrl), '_blank')}
+                                    onClick={handleDownloadPdf}
                                 >
                                     Download
                                 </Button>

@@ -25,6 +25,7 @@ import { Type } from './Utility/action.type'
 import { DataContext } from './DataProvider/DataProvider'
 import AdminPanel from './systemAdmin/AdminPage'
 import ChapaCheckout from './ui/CheckOut/ChapaCheckout'
+import OrderDetails from './ui/Account/OrderDetails'
 
 
 
@@ -90,6 +91,8 @@ const App = () => {
         <Route path='/FaqPage' element={< FAQPage />} />
         <Route path='/contactPage' element={<ContactPage />} />
         <Route path='/termsOfUse' element={<TermsOfUse />} />
+
+        <Route path='/orderDetails' element={<OrderDetails />} />
 
         {/* chapa checkout */}
         <Route path='/chapaCheckout' element={<ChapaCheckout />} />

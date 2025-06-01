@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useState, useEffect, useContext } from "react";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Heart, Share, Star, BookOpen, MapPin, Phone, Globe } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
@@ -18,6 +18,8 @@ import { Input } from "../../components/ui/input";
 import { Textarea } from "../../components/ui/textarea";
 import Layout from "@/Layout";
 import axios from "axios";
+import { DataContext } from "@/DataProvider/DataProvider";
+import { Type } from "@/Utility/action.type";
 
 export default function TextBookDetail() {
     const [textbook, setTextbook] = useState(null);
@@ -34,10 +36,14 @@ export default function TextBookDetail() {
         review: "",
     });
     const [visibleReviews, setVisibleReviews] = useState(2);
-    const [selectedFormat, setSelectedFormat] = useState("hardcover");
     const [reviews, setReviews] = useState([]); // Separate state for reviews
     const [reviewLoading, setReviewLoading] = useState(false);
     const [reviewError, setReviewError] = useState(null);
+    const [reviewErrorMessage, setReviewErrorMessage] = useState("");
+    const navigate = useNavigate();
+    const [{ basket }, dispatch] = useContext(DataContext);
+    const [reviewSort, setReviewSort] = useState("date");
+    const [relatedSort, setRelatedSort] = useState("price");
 
     const { id } = useParams();
 
@@ -132,7 +138,7 @@ export default function TextBookDetail() {
             const sami = await axios.get(
                 `https://bookcompass.onrender.com/api/reviews/${id}/reviews`
             );
-            setReviews(sami.data || []);
+            setReviews(Array.isArray(sami.data) ? sami.data : []);
             console.log(sami.data);
         } catch (err) {
             console.error("Failed to fetch reviews:", err);
@@ -168,9 +174,6 @@ export default function TextBookDetail() {
         postReview();
     }, [id]);
 
-
-
-
     if (loading) {
         return (
             <Layout>
@@ -201,29 +204,76 @@ export default function TextBookDetail() {
     }
 
     // Utility functions
-    const showNotification = (title, description) => {
-        alert(`${title}\n${description}`);
-    };
+
 
     const handleAddToCart = () => {
+        dispatch({
+            type: Type.ADD_TO_BASKET,
+            item: {
+                id: textbook.id,
+                title: textbook.title,
+                price: textbook.price,
+                imageUrl: textbook.imageUrl,
+                amount: 1,
+                type: "textbook",
+            },
+        });
         showNotification("Added to cart", `${textbook.title} - $${textbook.price.toFixed(2)}`);
     };
 
     const handleBuyNow = () => {
-        showNotification("Proceeding to checkout", `Purchasing ${textbook.title}`);
+        // Add to cart if not already in basket
+        if (!basket.find(item => item.id === textbook.id)) {
+            handleAddToCart();
+        }
+        navigate("/chapaCheckout");
     };
 
-    const handleToggleWishlist = () => {
-        setIsWishlisted(!isWishlisted);
-        showNotification(
-            isWishlisted ? "Removed from wishlist" : "Added to wishlist",
-            textbook.title
-        );
+    const handleToggleWishlist = async () => {
+        const token = localStorage.getItem("token");
+        if (!textbook || !token) return;
+        try {
+            if (!isWishlisted) {
+                // Add to wishlist via POST
+                const res = await fetch('https://bookcompass.onrender.com/api/wishlist', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ bookId: textbook.id }),
+                });
+                if (!res.ok) throw new Error('Failed to add to wishlist');
+                setIsWishlisted(true);
+                showNotification("Added to wishlist", textbook.title);
+            } else {
+                // Remove from wishlist via DELETE
+                const res = await fetch(`https://bookcompass.onrender.com/api/wishlist/${textbook.id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                if (!res.ok) throw new Error('Failed to remove from wishlist');
+                setIsWishlisted(false);
+                showNotification("Removed from wishlist", textbook.title);
+            }
+        } catch {
+            showNotification("Wishlist error", "Could not update wishlist", "error");
+        }
     };
 
     const handleShare = () => {
-        navigator.clipboard.writeText(window.location.href);
-        showNotification("Link copied", "Textbook link has been copied to clipboard");
+        if (navigator.share) {
+            navigator.share({
+                title: textbook.title,
+                text: `Check out this textbook: ${textbook.title} by ${textbook.author}`,
+                url: window.location.href,
+            });
+        } else {
+            navigator.clipboard.writeText(window.location.href);
+            showNotification("Link copied", "Textbook link has been copied to clipboard");
+        }
     };
 
     const handleLoadMoreReviews = () => {
@@ -247,7 +297,9 @@ export default function TextBookDetail() {
 
     const handleSubmitReview = async (e) => {
         e.preventDefault();
+        setReviewErrorMessage("");
         if (!reviewFormData.name || !reviewFormData.email || !reviewFormData.title || !reviewFormData.review) {
+            setReviewErrorMessage("Please fill in all required fields");
             showNotification("Missing information", "Please fill in all required fields");
             return;
         }
@@ -294,15 +346,36 @@ export default function TextBookDetail() {
                 review: "",
             });
         } catch (err) {
-            console.error("Error submitting review:", err);
-            showNotification(
-                "Error submitting review",
-                err.response?.data?.message || "Failed to submit review"
-            );
+            const msg = err?.response?.data?.message || "Failed to submit review";
+            setReviewErrorMessage(msg);
+            showNotification("Error submitting review", msg);
         } finally {
             setReviewLoading(false);
         }
     };
+
+    // Sorting for reviews and related books
+    const sortedReviews = Array.isArray(reviews) ? [...reviews].sort((a, b) => {
+        if (reviewSort === "date") {
+            return new Date(b.createdAt) - new Date(a.createdAt);
+        } else if (reviewSort === "rating") {
+            return b.rating - a.rating;
+        }
+        return 0;
+    }) : [];
+    const sortedRelatedBooks = [...relatedBooks].sort((a, b) => {
+        if (relatedSort === "price") {
+            return a.price - b.price;
+        } else if (relatedSort === "title") {
+            return a.title.localeCompare(b.title);
+        }
+        return 0;
+    });
+
+    // Simple notification utility (fallback to alert)
+    function showNotification(title, description) {
+        alert(`${title}\n${description}`);
+    }
 
     return (
         <Layout>
@@ -482,6 +555,12 @@ export default function TextBookDetail() {
                                     </div>
                                 </TabsContent>
                                 <TabsContent value="reviews" className="mt-4">
+                                    <div className="flex justify-end mb-2">
+                                        <select value={reviewSort} onChange={e => setReviewSort(e.target.value)} className="border rounded px-2 py-1 text-sm">
+                                            <option value="date">Sort by Date</option>
+                                            <option value="rating">Sort by Rating</option>
+                                        </select>
+                                    </div>
                                     <div className="space-y-4">
                                         {reviewLoading ? (
                                             <div className="flex justify-center py-4">
@@ -489,9 +568,9 @@ export default function TextBookDetail() {
                                             </div>
                                         ) : reviewError ? (
                                             <p className="text-red-500">{reviewError}</p>
-                                        ) : reviews.length > 0 ? (
+                                        ) : sortedReviews.length > 0 ? (
                                             <>
-                                                {reviews.slice(0, visibleReviews).map((review, index) => (
+                                                {sortedReviews.slice(0, visibleReviews).map((review, index) => (
                                                     <div key={index} className="rounded-lg border p-4">
                                                         <div className="flex items-start justify-between">
                                                             <div>
@@ -514,7 +593,7 @@ export default function TextBookDetail() {
                                                         </p>
                                                     </div>
                                                 ))}
-                                                {visibleReviews < reviews.length && (
+                                                {visibleReviews < sortedReviews.length && (
                                                     <Button variant="outline" onClick={handleLoadMoreReviews}>
                                                         Load More Reviews
                                                     </Button>
@@ -533,9 +612,15 @@ export default function TextBookDetail() {
                 {/* Related Textbooks Section */}
                 {relatedBooks.length > 0 && (
                     <div className="mt-16">
-                        <h2 className="mb-6 text-2xl font-bold tracking-tight">You May Also Like</h2>
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-2xl font-bold tracking-tight">You May Also Like</h2>
+                            <select value={relatedSort} onChange={e => setRelatedSort(e.target.value)} className="border rounded px-2 py-1 text-sm">
+                                <option value="price">Sort by Price</option>
+                                <option value="title">Sort by Title</option>
+                            </select>
+                        </div>
                         <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                            {relatedBooks.map((book) => (
+                            {sortedRelatedBooks.map((book) => (
                                 <Link
                                     key={book.id}
                                     to={`/textbooks/${book.id}`}
@@ -582,6 +667,11 @@ export default function TextBookDetail() {
                             </DialogDescription>
                         </DialogHeader>
                         <form onSubmit={handleSubmitReview} className="space-y-4">
+                            {reviewErrorMessage && (
+                                <div className="bg-red-100 text-red-700 px-3 py-2 rounded text-sm">
+                                    {reviewErrorMessage}
+                                </div>
+                            )}
                             <div className="space-y-2">
                                 <Label htmlFor="name">Your Name</Label>
                                 <Input
@@ -591,6 +681,7 @@ export default function TextBookDetail() {
                                     onChange={handleReviewInputChange}
                                     placeholder="John Doe"
                                     required
+                                    disabled={reviewErrorMessage === "You have already reviewed this book"}
                                 />
                             </div>
                             <div className="space-y-2">
@@ -603,6 +694,7 @@ export default function TextBookDetail() {
                                     onChange={handleReviewInputChange}
                                     placeholder="john.doe@example.com"
                                     required
+                                    disabled={reviewErrorMessage === "You have already reviewed this book"}
                                 />
                                 <p className="text-xs text-muted-foreground">Your email will not be published</p>
                             </div>
@@ -615,6 +707,7 @@ export default function TextBookDetail() {
                                             type="button"
                                             onClick={() => handleRatingChange(rating)}
                                             className="focus:outline-none"
+                                            disabled={reviewErrorMessage === "You have already reviewed this book"}
                                         >
                                             <Star
                                                 className={`h-6 w-6 ${rating <= reviewFormData.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
@@ -632,6 +725,7 @@ export default function TextBookDetail() {
                                     onChange={handleReviewInputChange}
                                     placeholder="Summarize your thoughts"
                                     required
+                                    disabled={reviewErrorMessage === "You have already reviewed this book"}
                                 />
                             </div>
                             <div className="space-y-2">
@@ -644,6 +738,7 @@ export default function TextBookDetail() {
                                     placeholder="What did you like or dislike about this textbook?"
                                     rows={5}
                                     required
+                                    disabled={reviewErrorMessage === "You have already reviewed this book"}
                                 />
                             </div>
                             <DialogFooter>
@@ -657,14 +752,14 @@ export default function TextBookDetail() {
                                 </Button>
                                 <Button
                                     type="submit"
-                                    disabled={reviewLoading}
+                                    disabled={reviewLoading || reviewErrorMessage === "You have already reviewed this book"}
                                 >
                                     {reviewLoading ? (
                                         <div className="flex items-center">
                                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                                             Submitting...
                                         </div>
-                                    ) : "Submit Review"}
+                                    ) : reviewErrorMessage === "You have already reviewed this book" ? "Already Reviewed" : "Submit Review"}
                                 </Button>
                             </DialogFooter>
                         </form>

@@ -1,56 +1,97 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Users, User, Building2, Package } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
 import { Avatar, AvatarFallback } from "../../components/ui/avatar"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "../../components/ui/chart"
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts"
-
-const monthlyData = [
-    { month: "Jan", readers: 180, bookstores: 25 },
-    { month: "Feb", readers: 220, bookstores: 32 },
-    { month: "Mar", readers: 280, bookstores: 38 },
-    { month: "Apr", readers: 320, bookstores: 45 },
-    { month: "May", readers: 380, bookstores: 52 },
-    { month: "Jun", readers: 420, bookstores: 58 },
-    { month: "Jul", readers: 480, bookstores: 65 },
-    { month: "Aug", readers: 520, bookstores: 72 },
-]
-
-const productCategories = [
-    { name: "Fiction", count: 5400, percentage: 44 },
-    { name: "Non-Fiction", count: 3200, percentage: 26 },
-    { name: "Children's", count: 2100, percentage: 17 },
-    { name: "Educational", count: 1534, percentage: 13 },
-]
-
-const recentSales = [
-    { id: 1, customer: "John Doe", email: "john.doe@example.com", amount: 249.0 },
-    { id: 2, customer: "Jane Lane", email: "jane.lane@example.com", amount: 149.0 },
-    { id: 3, customer: "Sarah Davis", email: "sarah.davis@example.com", amount: 299.0 },
-    { id: 4, customer: "Robert Wilson", email: "robert.wilson@example.com", amount: 399.0 },
-    { id: 5, customer: "Emily Moore", email: "emily.moore@example.com", amount: 199.0 },
-]
-
-const recentActivity = [
-    { id: 1, type: "Product updated", description: "Product ID: #P001", time: "10 min ago" },
-    { id: 2, type: "New user registered", description: "User ID: #U002", time: "20 min ago" },
-    { id: 3, type: "Product updated", description: "Product ID: #P003", time: "30 min ago" },
-    { id: 4, type: "New user registered", description: "User ID: #U004", time: "40 min ago" },
-    { id: 5, type: "Product updated", description: "Product ID: #P005", time: "50 min ago" },
-]
+import { PieChart, Pie, Cell, Legend } from "recharts"
 
 export default function Dashboard() {
     const [activeTab, setActiveTab] = useState("overview")
-    const totalUsers = 2853
-    const totalReaders = 2345
-    const totalBookstores = 508
-    const totalProducts = 12234
+    const [dashboardData, setDashboardData] = useState(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
+
+    useEffect(() => {
+        const fetchDashboard = async () => {
+            setLoading(true)
+            setError(null)
+            try {
+                const token = localStorage.getItem("token")
+                const res = await fetch("https://bookcompass.onrender.com/api/admin/dashboard", {
+                    headers: { Authorization: `Bearer ${token}` },
+                })
+                if (!res.ok) throw new Error("Failed to fetch dashboard data")
+                const data = await res.json()
+                setDashboardData(data.data || data)
+            } catch (err) {
+                setError(err.message || "Failed to load dashboard data")
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchDashboard()
+    }, [])
+
+    // Fallbacks for data structure
+    const totalUsers = dashboardData?.totalUsers || 0
+    const totalReaders = dashboardData?.totalBuyers || 0
+    const totalBookstores = dashboardData?.totalSellers || 0
+    const totalProducts = dashboardData?.totalProducts || 0
+    const monthlyData = dashboardData?.monthlyData || []
+    const productCategories = dashboardData?.productCategories || []
+    const recentSales = dashboardData?.recentSales || []
+    const recentActivity = dashboardData?.recentActivity || []
+    const trafficSources = dashboardData?.trafficSources || []
 
     return (
         <div className="flex flex-1 flex-col gap-4 p-4">
+            {loading && <div className="text-center py-8">Loading dashboard...</div>}
+            {error && <div className="text-center text-red-500 py-8">{error}</div>}
+
+            {/* Overview Analysis Section */}
+            {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{totalUsers.toLocaleString()}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
+                        <Package className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{totalSales.toLocaleString()}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                        <Package className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">${totalRevenue.toLocaleString()}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+                        <Package className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{totalProducts.toLocaleString()}</div>
+                    </CardContent>
+                </Card>
+            </div> */}
+
             <div className="grid auto-rows-min gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -121,8 +162,8 @@ export default function Dashboard() {
                             <CardContent className="pl-2">
                                 <ChartContainer
                                     config={{
-                                        readers: { label: "Readers", color: "#14b8a6" },
-                                        bookstores: { label: "Bookstores", color: "#0891b2" },
+                                        totalReaders: { label: "Readers", color: "#14b8a6" },
+                                        totalBookstores: { label: "Bookstores", color: "#0891b2" },
                                     }}
                                     className="h-[300px]"
                                 >
@@ -138,7 +179,6 @@ export default function Dashboard() {
                                 </ChartContainer>
                             </CardContent>
                         </Card>
-
                         <Card className="col-span-3">
                             <CardHeader>
                                 <CardTitle>Products Overview</CardTitle>
@@ -162,6 +202,7 @@ export default function Dashboard() {
                             </CardContent>
                         </Card>
                     </div>
+                    {/* recent sales section */}
 
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                         <Card className="col-span-4">
@@ -224,8 +265,24 @@ export default function Dashboard() {
                                 <CardTitle>Monthly User Growth</CardTitle>
                                 <CardDescription>New user registrations over time</CardDescription>
                             </CardHeader>
-                            <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">
-                                Monthly growth chart will appear here
+                            <CardContent className="h-[300px]">
+                                <ChartContainer
+                                    config={{
+                                        readers: { label: "Buyers", color: "#14b8a6" },
+                                        bookstores: { label: "Sellers", color: "#0891b2" },
+                                    }}
+                                    className="h-[250px]"
+                                >
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={monthlyData}>
+                                            <XAxis dataKey="month" />
+                                            <YAxis />
+                                            <ChartTooltip content={<ChartTooltipContent />} />
+                                            <Bar dataKey="readers" fill="#14b8a6" name="Buyers" />
+                                            <Bar dataKey="bookstores" fill="#0891b2" name="Sellers" />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </ChartContainer>
                             </CardContent>
                         </Card>
 
@@ -234,8 +291,26 @@ export default function Dashboard() {
                                 <CardTitle>Traffic Sources</CardTitle>
                                 <CardDescription>Where your users are coming from</CardDescription>
                             </CardHeader>
-                            <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">
-                                Traffic sources chart will appear here
+                            <CardContent className="h-[300px]">
+                                {trafficSources.length > 0 ? (
+                                    <ChartContainer
+                                        config={{}}
+                                        className="h-[250px]"
+                                    >
+                                        <ResponsiveContainer width="100%" height={250}>
+                                            <PieChart>
+                                                <Pie data={trafficSources} dataKey="value" nameKey="source" cx="50%" cy="50%" outerRadius={80} label>
+                                                    {trafficSources.map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={['#14b8a6', '#0891b2', '#f59e42', '#6366f1', '#f43f5e'][index % 5]} />
+                                                    ))}
+                                                </Pie>
+                                                <Legend />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </ChartContainer>
+                                ) : (
+                                    <div className="flex items-center justify-center h-full text-muted-foreground">No traffic data</div>
+                                )}
                             </CardContent>
                         </Card>
                     </div>

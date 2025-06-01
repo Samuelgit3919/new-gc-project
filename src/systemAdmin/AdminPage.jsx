@@ -1,6 +1,4 @@
-
-
-import { useState } from "react"
+import { useState, useContext } from "react"
 import {
     BarChart3,
     Users,
@@ -16,6 +14,7 @@ import {
     Activity,
     PanelLeft,
 } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 
 // Import all components
 import Dashboard from "./dashboard/Dashboard"
@@ -37,6 +36,8 @@ import {
 } from "../components/ui/dropdown-menu"
 import { Sheet, SheetContent } from "../components/ui/sheet"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../components/ui/tooltip"
+import { DataContext } from "../DataProvider/DataProvider"
+import { Type } from "../Utility/action.type"
 
 const mainNavigation = [
     {
@@ -105,6 +106,8 @@ function SidebarTrigger({ onClick, className = "" }) {
 }
 
 function AppSidebar({ activeSection, setActiveSection, isCollapsed, isMobile, onClose }) {
+    const navigate = useNavigate();
+    const [{ user }, dispatch] = useContext(DataContext);
     const handleQuickAction = (action) => {
         switch (action) {
             case "add-user":
@@ -126,6 +129,13 @@ function AppSidebar({ activeSection, setActiveSection, isCollapsed, isMobile, on
         setActiveSection(sectionId)
         if (isMobile) onClose?.()
     }
+
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        dispatch({ type: Type.SET_USER, user: null });
+        navigate("/login");
+    };
 
     const SidebarContent = () => (
         <div className="flex h-full w-full flex-col bg-sidebar">
@@ -355,56 +365,55 @@ function AppSidebar({ activeSection, setActiveSection, isCollapsed, isMobile, on
                         </ul>
                     </div>
                 </div>
-            </div>
-
-            {/* Sidebar Footer */}
-            <div className="flex flex-col gap-2 p-2 border-t border-sidebar-border">
-                <ul className="flex w-full min-w-0 flex-col gap-1">
-                    <li className="group/menu-item relative">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <button className="flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground">
-                                    <Avatar className="h-8 w-8 rounded-lg">
-                                        <AvatarImage src="/placeholder.svg?height=32&width=32" alt="Admin User" />
-                                        <AvatarFallback className="rounded-lg bg-teal-600 text-white">AU</AvatarFallback>
-                                    </Avatar>
-                                    {!isCollapsed && (
-                                        <>
-                                            <div className="grid flex-1 text-left text-sm leading-tight">
-                                                <span className="truncate font-semibold">Admin User</span>
-                                                <span className="truncate text-xs text-sidebar-foreground/70">admin@bookstore.com</span>
-                                            </div>
-                                            <ChevronDown className="ml-auto size-4" />
-                                        </>
-                                    )}
-                                </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-56 rounded-lg" side="top" align="start" sideOffset={4}>
-                                <DropdownMenuItem onClick={() => handleNavigation("profile")}>
-                                    <User className="mr-2 h-4 w-4" />
-                                    <span>Account</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleNavigation("settings")}>
-                                    <SettingsIcon className="mr-2 h-4 w-4" />
-                                    <span>Settings</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem>
-                                    <Bell className="mr-2 h-4 w-4" />
-                                    <span>Notifications</span>
-                                    <Badge variant="secondary" className="ml-auto">
-                                        3
-                                    </Badge>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-red-600">
-                                    <LogOut className="mr-2 h-4 w-4" />
-                                    <span>Log out</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </li>
-                </ul>
+                {/* Sidebar Footer */}
+                <div className="flex flex-col gap-2 p-2 border-t border-sidebar-border">
+                    <ul className="flex w-full min-w-0 flex-col gap-1">
+                        <li className="group/menu-item relative">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button className="flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground">
+                                        <Avatar className="h-8 w-8 rounded-lg">
+                                            <AvatarImage src="/placeholder.svg?height=32&width=32" alt={user?.name || "Admin User"} />
+                                            <AvatarFallback className="rounded-lg bg-teal-600 text-white">{user?.name ? user.name.split(" ").map(n => n[0]).join("") : "AU"}</AvatarFallback>
+                                        </Avatar>
+                                        {!isCollapsed && (
+                                            <>
+                                                <div className="grid flex-1 text-left text-sm leading-tight">
+                                                    <span className="truncate font-semibold">{user?.name || "Admin User"}</span>
+                                                    <span className="truncate text-xs text-sidebar-foreground/70">{user?.email || "admin@bookstore.com"}</span>
+                                                </div>
+                                                <ChevronDown className="ml-auto size-4" />
+                                            </>
+                                        )}
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="w-56 rounded-lg" side="top" align="start" sideOffset={4}>
+                                    <DropdownMenuItem onClick={() => handleNavigation("profile")}>
+                                        <User className="mr-2 h-4 w-4" />
+                                        <span>Account</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleNavigation("settings")}>
+                                        <SettingsIcon className="mr-2 h-4 w-4" />
+                                        <span>Settings</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem>
+                                        <Bell className="mr-2 h-4 w-4" />
+                                        <span>Notifications</span>
+                                        <Badge variant="secondary" className="ml-auto">
+                                            3
+                                        </Badge>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem className="text-red-600" onClick={handleLogout}>
+                                        <LogOut className="mr-2 h-4 w-4" />
+                                        <span>Log out</span>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
     )
@@ -438,7 +447,7 @@ function AppSidebar({ activeSection, setActiveSection, isCollapsed, isMobile, on
 export default function AdminPanel() {
     const [activeSection, setActiveSection] = useState("dashboard")
     const [sidebarOpen, setSidebarOpen] = useState(true)
-    const [isMobile, setIsMobile] = useState(false)
+    const [isMobile] = useState(false)
 
     const getSectionTitle = () => {
         switch (activeSection) {

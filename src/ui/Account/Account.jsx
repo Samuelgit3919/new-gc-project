@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useContext, useRef } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { ArrowLeft, Book, CreditCard, LogOut, Package, Settings, User } from "lucide-react"
 import { Button } from "../../components/ui/button"
@@ -8,17 +8,38 @@ import { Input } from "../../components/ui/input"
 import { Label } from "../../components/ui/label"
 import Layout from "../../Layout"
 import axios from "axios"
+import { DataContext } from "@/DataProvider/DataProvider"
+import { Type } from "@/Utility/action.type"
 
 export default function AccountPage() {
     const [activeTab, setActiveTab] = useState("profile")
     const navigate = useNavigate()
     const [users, setUser] = useState({})
+    const [userContext, dispatch] = useContext(DataContext);
+    // Prefer context user, fallback to API user
+    const displayUser = userContext?.user || users || {};
     const [name, setName] = useState("")
     const [email, setEmail] = useState("")
     const [phone, setPhone] = useState("")
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [wishlist, setWishlist] = useState([]);
+    const [wishlistLoading, setWishlistLoading] = useState(true);
+    const [wishlistError, setWishlistError] = useState(null);
+    const [passwordForm, setPasswordForm] = useState({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+    });
+    const [passwordLoading, setPasswordLoading] = useState(false);
+    const [passwordError, setPasswordError] = useState("");
+    const [passwordSuccess, setPasswordSuccess] = useState("");
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [deleteLoading, setDeleteLoading] = useState(false);
+    const [deleteError, setDeleteError] = useState("");
+    const [deleteSuccess, setDeleteSuccess] = useState("");
+    const deleteButtonRef = useRef();
 
     const [address, setAddress] = useState({
         street: "",
@@ -36,17 +57,12 @@ export default function AccountPage() {
     //     return;
     // }
 
-
-
-
-
     // order useEffect
     useEffect(() => {
         const fetchOrders = async () => {
             try {
                 const token = localStorage.getItem("token");
                 console.log(token)
-
 
                 if (!token || !id) {
                     throw new Error("User not authenticated");
@@ -75,93 +91,122 @@ export default function AccountPage() {
         fetchOrders();
     }, []);
 
-
     // user useEffect
     useEffect(() => {
-        fetch(`https://bookcompass.onrender.com/api/user/${id}`)
-            .then(res => res.json())
-            .then(data => {
-                // console.log(data)
-                setUser(data.data)
-            })
-    }, [])
+        const fetchCurrentUser = async () => {
+            try {
+                const token = localStorage.getItem("token");
+                if (!token) throw new Error("User not authenticated");
+                const res = await fetch("https://bookcompass.onrender.com/api/users/me", {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (!res.ok) throw new Error("Failed to fetch user");
+                const data = await res.json();
+                setUser(data.data || data);
+            } catch {
+                setUser({});
+            }
+        };
+        fetchCurrentUser();
+    }, []);
+
+    // Fetch wishlist for the user
+    useEffect(() => {
+        const fetchWishlist = async () => {
+            setWishlistLoading(true);
+            setWishlistError(null);
+            try {
+                const token = localStorage.getItem("token");
+                if (!token) throw new Error("User not authenticated");
+                const res = await fetch("https://bookcompass.onrender.com/api/wishlist", {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (!res.ok) throw new Error("Failed to fetch wishlist");
+                const data = await res.json();
+                setWishlist(Array.isArray(data.data) ? data.data : []);
+            } catch {
+                setWishlistError("Failed to load wishlist");
+                setWishlist([]);
+            } finally {
+                setWishlistLoading(false);
+            }
+        };
+        fetchWishlist();
+    }, [id]);
 
     const handleSaveProfile = async (e) => {
-        e.preventDefault()
-
-        if (!id) {
-            console.error("User ID not found in localStorage")
-            return
+        e.preventDefault();
+        const token = localStorage.getItem("token");
+        if (!token) {
+            alert("User not authenticated");
+            return;
         }
-
         const updatedProfile = {
             name,
             email,
             phone,
-        }
-
+        };
         try {
-            const response = await fetch(`https://bookcompass.onrender.com/api/user/${id}`, {
+            const response = await fetch("https://bookcompass.onrender.com/api/users/me", {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify(updatedProfile),
-            })
-
+            });
             if (response.ok) {
-                const result = await response.json()
-                localStorage.setItem("user", JSON.stringify(result.data))
-                setUser(result.data)
-                alert("User updated successfully")
+                const result = await response.json();
+                localStorage.setItem("user", JSON.stringify(result.data));
+                setUser(result.data);
+                alert("User updated successfully");
             } else {
-                console.error("Failed to update user")
+                const errorData = await response.json();
+                alert(errorData.message || "Failed to update user");
             }
         } catch (error) {
-            console.error("Error updating user:", error)
+            alert(error.message || "Error updating user");
         }
-    }
+    };
 
     const handleSaveAddress = async (e) => {
-        e.preventDefault()
-
-        if (!id) {
-            console.error("User ID not found in localStorage")
-            return
+        e.preventDefault();
+        const token = localStorage.getItem("token");
+        if (!token) {
+            alert("User not authenticated");
+            return;
         }
-
         const updatedAddress = {
-            street: address.street,
-            city: address.city,
-            state: address.state,
-            zip: address.zip,
-            country: address.country,
-        }
-
+            address: {
+                street: address.street,
+                city: address.city,
+                state: address.state,
+                zip: address.zip,
+                country: address.country,
+            },
+        };
         try {
-            const response = await fetch(`https://bookcompass.onrender.com/api/user/${id}`, {
+            const response = await fetch("https://bookcompass.onrender.com/api/users/me", {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({ address: updatedAddress }),
-            })
-
+                body: JSON.stringify(updatedAddress),
+            });
             if (response.ok) {
-                const result = await response.json()
-                localStorage.setItem("user", JSON.stringify(result.data))
-                setUser(result.data)
-                console.log("Address updated successfully")
+                const result = await response.json();
+                localStorage.setItem("user", JSON.stringify(result.data));
+                setUser(result.data);
+                alert("Address updated successfully");
             } else {
-                console.error("Failed to update address")
+                const errorData = await response.json();
+                alert(errorData.message || "Failed to update address");
             }
         } catch (error) {
-            console.error("Error updating address:", error)
+            alert(error.message || "Error updating address");
         }
-    }
-
+    };
 
     const handleLogout = () => {
         localStorage.removeItem("token")
@@ -169,22 +214,119 @@ export default function AccountPage() {
         navigate("/")
     }
 
-    if (!users) {
-        return <div className="p-8 text-center">Loading user data...</div>
+    if (!displayUser) {
+        return <div className="p-8 text-center">Loading user data...</div>;
     }
 
+    // Orders: filter by user id (if needed)
+    const userOrders = Array.isArray(orders) ? orders.filter(order => order.userId === id) : [];
 
-    const handleRemoveFromWishlist = (id) => {
-        console.log(`Removed book with ID ${id} from wishlist`)
-    }
+    // Wishlist actions
+    const handleRemoveFromWishlist = async (bookId) => {
+        try {
+            const token = localStorage.getItem("token");
+            if (!token) throw new Error("User not authenticated");
+            const res = await fetch(`https://bookcompass.onrender.com/api/wishlist/${bookId}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` },
+            });
 
-
-
+            if (!res.ok) throw new Error("Failed to remove from wishlist");
+            setWishlist(wishlist.filter(item => item._id !== bookId));
+            alert("Removed from wishlist");
+        } catch (err) {
+            alert(err.message || "Failed to remove from wishlist");
+        }
+    };
     const handleAddToCart = (book) => {
-        console.log(`${book.title} added to cart`)
-    }
+        dispatch({
+            type: Type.ADD_TO_BASKET,
+            item: {
+                id: book._id || book.id,
+                title: book.title,
+                price: book.price,
+                imageUrl: book.imageUrl || book.cover,
+                amount: 1,
+                type: book.type || "textbook",
+            },
+        });
+        alert(`${book.title} added to cart`);
+    };
 
-
+    // Change password handler
+    const handleChangePassword = async (e) => {
+        e.preventDefault();
+        setPasswordError("");
+        setPasswordSuccess("");
+        if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+            setPasswordError("Please fill in all fields");
+            return;
+        }
+        if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+            setPasswordError("New passwords do not match");
+            return;
+        }
+        setPasswordLoading(true);
+        try {
+            const token = localStorage.getItem("token");
+            if (!token) throw new Error("User not authenticated");
+            const res = await fetch(`https://bookcompass.onrender.com/api/user/${id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    password: passwordForm.newPassword,
+                    oldPassword: passwordForm.currentPassword,
+                }),
+            });
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.message || "Failed to change password");
+            }
+            setPasswordSuccess("Password changed successfully");
+            setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+        } catch (err) {
+            setPasswordError(err.message || "Failed to change password");
+        } finally {
+            setPasswordLoading(false);
+        }
+    };
+    // Delete account handler
+    const handleDeleteAccount = async () => {
+        setDeleteError("");
+        setDeleteSuccess("");
+        setDeleteLoading(true);
+        try {
+            const token = localStorage.getItem("token");
+            if (!token) throw new Error("User not authenticated");
+            const res = await fetch(`https://bookcompass.onrender.com/api/user/${id}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.message || "Failed to delete account");
+            }
+            setDeleteSuccess("Account deleted successfully");
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            setTimeout(() => {
+                navigate("/");
+            }, 1500);
+        } catch (err) {
+            setDeleteError(err.message || "Failed to delete account");
+        } finally {
+            setDeleteLoading(false);
+            setDeleteDialogOpen(false);
+        }
+    };
+    // Settings input change
+    const handlePasswordInputChange = (e) => {
+        const { name, value } = e.target;
+        setPasswordForm((prev) => ({ ...prev, [name]: value }));
+    };
 
     return (
         <Layout>
@@ -207,8 +349,8 @@ export default function AccountPage() {
                                     <User className="h-5 w-5 text-primary" />
                                 </div>
                                 <div>
-                                    <p className="font-medium">{users?.name}</p>
-                                    <p className="text-sm text-muted-foreground">{users?.email}</p>
+                                    <p className="font-medium">{displayUser?.name || "User"}</p>
+                                    <p className="text-sm text-muted-foreground">{displayUser?.email || "No email"}</p>
                                 </div>
                             </div>
                             <div className="space-y-1">
@@ -329,11 +471,11 @@ export default function AccountPage() {
                                     <p>Loading orders...</p>
                                 ) : error ? (
                                     <p className="text-red-500">{error}</p>
-                                ) : orders.length === 0 ? (
+                                ) : userOrders.length === 0 ? (
                                     <p>No orders found.</p>
                                 ) : (
                                     <div className="space-y-4">
-                                        {orders.map((order) => (
+                                        {userOrders.map((order) => (
                                             <Card key={order._id}>
                                                 <CardHeader className="pb-2">
                                                     <div className="flex flex-col justify-between space-y-2 sm:flex-row sm:items-center sm:space-y-0">
@@ -384,15 +526,17 @@ export default function AccountPage() {
                             </div>
                         )}
 
-
                         {activeTab === "wishlist" && (
                             <div className="space-y-6">
                                 <div>
                                     <h1 className="text-2xl font-bold tracking-tight">Wishlist</h1>
                                     <p className="text-muted-foreground">Books you've saved for later.</p>
                                 </div>
-
-                                {user.wishlist.length === 0 ? (
+                                {wishlistLoading ? (
+                                    <p>Loading wishlist...</p>
+                                ) : wishlistError ? (
+                                    <p className="text-red-500">{wishlistError}</p>
+                                ) : wishlist.length === 0 ? (
                                     <Card>
                                         <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                                             <Book className="h-12 w-12 text-muted-foreground" />
@@ -407,30 +551,30 @@ export default function AccountPage() {
                                     </Card>
                                 ) : (
                                     <div className="space-y-4">
-                                        {user.wishlist.map((book) => (
-                                            <Card key={book.id}>
+                                        {wishlist.map((book) => (
+                                            <Card key={book._id || book.id}>
                                                 <div className="flex items-start space-x-4 p-4">
                                                     <div className="h-24 w-16 flex-shrink-0 overflow-hidden rounded-md border">
                                                         <img
-                                                            src={book.cover || "/placeholder.svg"}
+                                                            src={book.imageUrl || book.cover || "/placeholder.svg"}
                                                             alt={book.title}
                                                             className="h-full w-full object-cover"
                                                         />
                                                     </div>
                                                     <div className="flex flex-1 flex-col justify-between">
                                                         <div>
-                                                            <Link to={`/books/${book.id}`} className="font-medium hover:underline">
+                                                            <Link to={`/books/${book._id || book.id}`} className="font-medium hover:underline">
                                                                 {book.title}
                                                             </Link>
                                                             <p className="text-sm text-muted-foreground">{book.author}</p>
                                                         </div>
                                                         <div className="mt-2 flex items-center justify-between">
-                                                            <p className="font-medium">${book.price.toFixed(2)}</p>
+                                                            <p className="font-medium">${book.price?.toFixed(2) || "N/A"}</p>
                                                             <div className="flex space-x-2">
                                                                 <Button size="sm" onClick={() => handleAddToCart(book)}>
                                                                     Add to Cart
                                                                 </Button>
-                                                                <Button variant="outline" size="sm" onClick={() => handleRemoveFromWishlist(book.id)}>
+                                                                <Button variant="outline" size="sm" onClick={() => handleRemoveFromWishlist(book._id || book.id)}>
                                                                     Remove
                                                                 </Button>
                                                             </div>
@@ -502,20 +646,22 @@ export default function AccountPage() {
                                         <CardDescription>Change your password.</CardDescription>
                                     </CardHeader>
                                     <CardContent>
-                                        <form className="space-y-4">
+                                        <form className="space-y-4" onSubmit={handleChangePassword}>
+                                            {passwordError && <div className="bg-red-100 text-red-700 px-3 py-2 rounded text-sm">{passwordError}</div>}
+                                            {passwordSuccess && <div className="bg-green-100 text-green-700 px-3 py-2 rounded text-sm">{passwordSuccess}</div>}
                                             <div className="grid gap-2">
                                                 <Label htmlFor="current-password">Current Password</Label>
-                                                <Input id="current-password" type="password" />
+                                                <Input id="current-password" name="currentPassword" type="password" value={passwordForm.currentPassword} onChange={handlePasswordInputChange} />
                                             </div>
                                             <div className="grid gap-2">
                                                 <Label htmlFor="new-password">New Password</Label>
-                                                <Input id="new-password" type="password" />
+                                                <Input id="new-password" name="newPassword" type="password" value={passwordForm.newPassword} onChange={handlePasswordInputChange} />
                                             </div>
                                             <div className="grid gap-2">
                                                 <Label htmlFor="confirm-password">Confirm New Password</Label>
-                                                <Input id="confirm-password" type="password" />
+                                                <Input id="confirm-password" name="confirmPassword" type="password" value={passwordForm.confirmPassword} onChange={handlePasswordInputChange} />
                                             </div>
-                                            <Button>Change Password</Button>
+                                            <Button type="submit" disabled={passwordLoading}>{passwordLoading ? "Changing..." : "Change Password"}</Button>
                                         </form>
                                     </CardContent>
                                 </Card>
@@ -528,7 +674,23 @@ export default function AccountPage() {
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent>
-                                        <Button variant="destructive">Delete Account</Button>
+                                        {deleteError && <div className="bg-red-100 text-red-700 px-3 py-2 rounded text-sm mb-2">{deleteError}</div>}
+                                        {deleteSuccess && <div className="bg-green-100 text-green-700 px-3 py-2 rounded text-sm mb-2">{deleteSuccess}</div>}
+                                        <Button variant="destructive" ref={deleteButtonRef} onClick={() => setDeleteDialogOpen(true)} disabled={deleteLoading}>
+                                            {deleteLoading ? "Deleting..." : "Delete Account"}
+                                        </Button>
+                                        {deleteDialogOpen && (
+                                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                                                <div className="bg-white dark:bg-gray-900 rounded-lg p-6 shadow-lg max-w-sm w-full">
+                                                    <h2 className="text-lg font-bold mb-2 text-red-600">Confirm Account Deletion</h2>
+                                                    <p className="mb-4">Are you sure you want to delete your account? This action cannot be undone.</p>
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleteLoading}>Cancel</Button>
+                                                        <Button variant="destructive" onClick={handleDeleteAccount} disabled={deleteLoading}>{deleteLoading ? "Deleting..." : "Yes, Delete"}</Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </CardContent>
                                 </Card>
                             </div>
