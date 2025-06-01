@@ -1,8 +1,8 @@
 "use client"
 
-import { Bell, Menu, Search } from "lucide-react"
-import { Input } from "../components/ui/input"
-import { Button } from "../components/ui/button"
+import { Bell, Search } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -10,26 +10,12 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from "../components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar"
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
-export default function Header({
-    title,
-    isMobile,
-    sidebarOpen,
-    setSidebarOpen,
-    searchQuery,
-    setSearchQuery,
-}) {
+export default function Header({ title, searchQuery, setSearchQuery }) {
     return (
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white px-4 dark:bg-gray-800 dark:border-gray-700">
-            {isMobile && (
-                <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setSidebarOpen(!sidebarOpen)}>
-                    <Menu className="h-5 w-5" />
-                    <span className="sr-only">Toggle menu</span>
-                </Button>
-            )}
-
             <div className="flex items-center flex-1 gap-4 md:gap-8">
                 <h1 className="text-xl font-semibold">{title}</h1>
                 <div className="relative w-full max-w-md">

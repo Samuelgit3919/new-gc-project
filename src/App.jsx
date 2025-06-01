@@ -74,10 +74,15 @@ const App = () => {
         <Route element={<ProtectedRoutes />}>
           <Route path='/account' element={<Account />} />
           <Route path='/cart' element={<Cart />} />
+
+          {/*  */}
+          {/* user profile page */}
           <Route path='/page' element={<Page />} />
+          {/* admin page */}
+          <Route path='/adminPanel' element={<AdminPanel />} />
         </Route>
 
-        <Route path='/adminPanel' element={<AdminPanel />} />
+
 
         <Route path='/audiobooks' element={<AudioBooks />}
         />

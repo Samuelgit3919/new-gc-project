@@ -1,13 +1,14 @@
-"use client"
 
-import { LayoutDashboard, BookOpen, ShoppingCart, Settings, LogOut } from "lucide-react"
-import { Button } from "@/components/ui/button"
 
-function Sidebar({ activeView, setActiveView }) {
+import { LayoutDashboard, BookOpen, ShoppingCart, Users, Settings, LogOut } from "lucide-react"
+import { Button } from "../components/ui/button"
+
+export default function Sidebar({ activeView, setActiveView }) {
     const navItems = [
         { icon: LayoutDashboard, label: "Dashboard", value: "dashboard" },
         { icon: BookOpen, label: "Books", value: "books" },
         { icon: ShoppingCart, label: "Orders", value: "orders" },
+        // { icon: Users, label: "Users", value: "users" },
         { icon: Settings, label: "Settings", value: "settings" },
     ]
 
@@ -16,6 +17,7 @@ function Sidebar({ activeView, setActiveView }) {
             <div className="flex h-16 items-center border-b px-6 dark:border-gray-700">
                 <h1 className="text-lg font-semibold">Bookstore Admin</h1>
             </div>
+
             <nav className="flex-1 overflow-y-auto p-4">
                 <ul className="space-y-2">
                     {navItems.map((item) => (
@@ -32,6 +34,7 @@ function Sidebar({ activeView, setActiveView }) {
                     ))}
                 </ul>
             </nav>
+
             <div className="border-t p-4 dark:border-gray-700">
                 <Button variant="ghost" className="w-full justify-start text-red-500">
                     <LogOut className="mr-2 h-5 w-5" />
@@ -41,5 +44,3 @@ function Sidebar({ activeView, setActiveView }) {
         </aside>
     )
 }
-
-export default Sidebar
