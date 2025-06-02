@@ -3,6 +3,7 @@ import React, { useRef, useEffect, useState } from "react";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { Button } from "../../components/ui/button";
 import Layout from "../../Layout";
+import { Skeleton } from "../../components/ui/skeleton";
 
 const categories = [
     {
@@ -127,8 +128,14 @@ const AudioBooks = () => {
                             className="flex overflow-x-auto overflow-y-hidden space-x-3 sm:space-x-4 snap-x snap-mandatory hide-scrollbar scroll-smooth"
                         >
                             {loading ? (
-                                <div className="flex justify-center items-center min-h-[150px] sm:min-h-[200px] w-full">
-                                    <p className="text-gray-500 text-sm sm:text-base">Loading...</p>
+                                <div className="flex gap-3 sm:gap-4 min-h-[150px] sm:min-h-[200px] w-full">
+                                    {[...Array(6)].map((_, i) => (
+                                        <div key={i} className="flex-shrink-0 w-32 sm:w-40 md:w-48 lg:w-52">
+                                            <Skeleton className="w-full h-32 sm:h-40 md:h-48 lg:h-52 mb-2 rounded-md" />
+                                            <Skeleton className="h-4 w-3/4 mb-1 rounded" />
+                                            <Skeleton className="h-3 w-1/2 rounded" />
+                                        </div>
+                                    ))}
                                 </div>
                             ) : error ? (
                                 <div className="flex justify-center items-center min-h-[150px] sm:min-h-[200px] w-full">

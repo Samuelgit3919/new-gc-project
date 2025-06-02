@@ -28,6 +28,7 @@ import ChapaCheckout from './ui/CheckOut/ChapaCheckout'
 import OrderDetails from './ui/Account/OrderDetails'
 import BookstoreProfilePage from './admin/nextPage/BookstoreProfilePage'
 import HomePage from './components/HomePage/HomePage'
+// import Wishlist from './ui/Account/WishList'
 
 
 
@@ -76,14 +77,12 @@ const App = () => {
         <Route element={<ProtectedRoutes />}>
           <Route path='/account' element={<Account />} />
           <Route path='/cart' element={<Cart />} />
-
-
+          {/* <Route path="/wishList" element={<Wishlist />} /> */}
           {/* user profile page */}
           <Route path='/page' element={<Page />} />
           {/* admin page */}
           <Route path='/adminPanel' element={<AdminPanel />} />
           <Route path='/bookStoreProfilePage' element={<BookstoreProfilePage />} />
-
         </Route>
 
 

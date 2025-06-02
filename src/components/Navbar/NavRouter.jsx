@@ -37,8 +37,8 @@ const NavRouter = ({ isMobile = false, onNavigate }) => {
     const profileLinks = user
         ? [
             { label: "Your Profile", to: "/account", icon: User },
-            { label: "Your Orders", to: "/ui/orders", icon: ListOrdered },
-            { label: "Wishlist", to: "/ui/wishlist", icon: Heart },
+            // { label: "Your Orders", to: "/ui/orders", icon: ListOrdered },
+            // { label: "Wishlist", to: "/ui/wishlist", icon: Heart },
             { label: "Sign out", to: "/", isButton: true, icon: LogOut },
         ]
         : [
@@ -178,70 +178,80 @@ const NavRouter = ({ isMobile = false, onNavigate }) => {
                 </Link>
             </div>
 
-            {/* Profile Dropdown/Accordion */}
-            {isMobile && (
-                <div className="w-full mt-2 mb-4">
-                    <button
-                        className="flex items-center w-full justify-between px-5 py-3 text-base font-medium text-gray-700 hover:text-purple-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 rounded-lg transition-all bg-white shadow border border-gray-200"
-                        onClick={() => toggleDropdown("profile")}
-                        aria-expanded={mobileDropdown.profile}
-                        aria-controls="mobile-profile-dropdown"
-                    >
-                        <span className="flex items-center gap-2">
-                            {user && user.avatar ? (
-                                <img src={user.avatar} alt="avatar" className="w-6 h-6 rounded-full object-cover" />
+            {/* Profile Dropdown (now in main nav for all sizes) */}
+            <div className="relative w-full md:w-auto">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors duration-200 flex items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 w-full md:w-auto justify-between md:justify-center ${isMobile ? 'px-5 py-3 bg-white shadow border border-gray-200 rounded-lg mb-4' : ''}`}
+                    onClick={() => toggleDropdown("profile")}
+                    aria-label="Profile"
+                    aria-expanded={isMobile ? mobileDropdown.profile : activeDropdown === "profile"}
+                    aria-controls={isMobile ? "mobile-profile-dropdown" : undefined}
+                >
+                    {user && user.avatar ? (
+                        <img src={user.avatar} alt="avatar" className="w-6 h-6 rounded-full object-cover mr-2" />
+                    ) : (
+                        <FaUserCircle className="text-xl mr-2" />
+                    )}
+                    <span>{user ? (user.name || user.email) : 'Profile'}</span>
+                    <svg className={`w-4 h-4 ml-2 transition-transform ${((isMobile && mobileDropdown.profile) || (!isMobile && activeDropdown === 'profile')) ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                </Button>
+                <div
+                    id={isMobile ? "mobile-profile-dropdown" : undefined}
+                    className={`absolute right-0 md:right-0 mt-2 w-full md:w-56 rounded-md bg-background shadow-lg ring-1 ring-black ring-opacity-5 z-50 transition-all duration-200
+                        ${((isMobile && mobileDropdown.profile) || (!isMobile && activeDropdown === "profile")) ? "opacity-100 max-h-96 translate-y-0 pointer-events-auto" : "opacity-0 max-h-0 -translate-y-2 pointer-events-none"}
+                        ${isMobile ? 'overflow-hidden' : ''}`}
+                    style={{ minWidth: isMobile ? undefined : '12rem' }}
+                >
+                    <div className={`py-1 ${isMobile ? 'flex flex-col bg-gray-50 rounded-b-lg shadow-inner border-t border-gray-200' : ''}`} role="menu" aria-orientation="vertical" aria-labelledby="profile-menu">
+                        {profileLinks.map((link) =>
+                            link.isButton ? (
+                                <button
+                                    key={link.label}
+                                    className={`flex items-center gap-2 w-full ${isMobile ? 'px-7 py-3 text-base' : 'px-4 py-2 text-sm'} text-gray-700 hover:${isMobile ? 'bg-purple-100 text-purple-900' : 'bg-gray-100 text-gray-900'} focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-all`}
+                                    onClick={() => {
+                                        if (link.label.toLowerCase() === "sign out") {
+                                            handleSignOut();
+                                        }
+                                        if (isMobile) {
+                                            setMobileDropdown((prev) => ({ ...prev, profile: false }));
+                                        } else {
+                                            setActiveDropdown(null);
+                                        }
+                                        if (onNavigate) onNavigate();
+                                    }}
+                                    role="menuitem"
+                                >
+                                    <link.icon className="h-5 w-5 text-purple-500" />
+                                    {link.label}
+                                </button>
                             ) : (
-                                <FaUserCircle className="text-xl" />
-                            )}
-                            {user ? (user.name || user.email) : 'Profile'}
-                        </span>
-                        <svg className={`w-4 h-4 ml-2 transition-transform ${mobileDropdown.profile ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
-                    </button>
-                    <div
-                        id="mobile-profile-dropdown"
-                        className={`overflow-hidden transition-all duration-300 ${mobileDropdown.profile ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
-                    >
-                        <div className="flex flex-col bg-gray-50 rounded-b-lg shadow-inner border-t border-gray-200">
-                            {profileLinks.map((link) =>
-                                link.isButton ? (
-                                    <button
-                                        key={link.label}
-                                        className="flex items-center gap-2 w-full px-7 py-3 text-base text-gray-700 hover:bg-purple-100 hover:text-purple-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-all"
-                                        onClick={() => {
-                                            if (link.label.toLowerCase() === "sign out") {
-                                                handleSignOut();
-                                            }
+                                <Link
+                                    key={link.label}
+                                    to={link.to}
+                                    className={`flex items-center gap-2 ${isMobile ? 'px-7 py-3 text-base' : 'px-4 py-2 text-sm'} text-gray-700 hover:${isMobile ? 'bg-purple-100 text-purple-900' : 'bg-gray-100 text-gray-900'} focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-all`}
+                                    onClick={() => {
+                                        if (isMobile) {
                                             setMobileDropdown((prev) => ({ ...prev, profile: false }));
-                                            if (onNavigate) onNavigate();
-                                        }}
-                                        role="menuitem"
-                                    >
-                                        <link.icon className="h-5 w-5 text-purple-500" />
-                                        {link.label}
-                                    </button>
-                                ) : (
-                                    <Link
-                                        key={link.label}
-                                        to={link.to}
-                                        className="flex items-center gap-2 px-7 py-3 text-base text-gray-700 hover:bg-purple-100 hover:text-purple-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-all"
-                                        onClick={() => {
-                                            setMobileDropdown((prev) => ({ ...prev, profile: false }));
-                                            if (onNavigate) onNavigate();
-                                        }}
-                                        role="menuitem"
-                                    >
-                                        <link.icon className="h-5 w-5 text-purple-500" />
-                                        {link.label}
-                                    </Link>
-                                )
-                            )}
-                            {user && (
-                                <hr className="my-2 border-t border-gray-200" />
-                            )}
-                        </div>
+                                        } else {
+                                            setActiveDropdown(null);
+                                        }
+                                        if (onNavigate) onNavigate();
+                                    }}
+                                    role="menuitem"
+                                >
+                                    <link.icon className="h-5 w-5 text-purple-500" />
+                                    {link.label}
+                                </Link>
+                            )
+                        )}
+                        {user && (
+                            <hr className="my-2 border-t border-gray-200" />
+                        )}
                     </div>
                 </div>
-            )}
+            </div>
         </div>
     );
 };

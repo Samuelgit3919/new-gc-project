@@ -20,6 +20,9 @@ import Layout from "@/Layout";
 import axios from "axios";
 import { DataContext } from "@/DataProvider/DataProvider";
 import { Type } from "@/Utility/action.type";
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { Skeleton } from "../../components/ui/skeleton";
 
 export default function TextBookDetail() {
     const [textbook, setTextbook] = useState(null);
@@ -32,8 +35,7 @@ export default function TextBookDetail() {
         name: "",
         email: "",
         rating: 5,
-        title: "",
-        review: "",
+        comment: "",
     });
     const [visibleReviews, setVisibleReviews] = useState(2);
     const [reviews, setReviews] = useState([]); // Separate state for reviews
@@ -135,51 +137,53 @@ export default function TextBookDetail() {
         setReviewLoading(true);
         setReviewError(null);
         try {
-            const sami = await axios.get(
+            const res = await axios.get(
                 `https://bookcompass.onrender.com/api/reviews/${id}/reviews`
             );
-            setReviews(Array.isArray(sami.data) ? sami.data : []);
-            console.log(sami.data);
-        } catch (err) {
-            console.error("Failed to fetch reviews:", err);
+            setReviews(Array.isArray(res.data.data) ? res.data.data : []);
+            console.log(res.data.data);
+        } catch {
             setReviewError("Failed to load reviews");
         } finally {
             setReviewLoading(false);
-        }
-    };
-    const postReview = async (reviewData) => {
-        try {
-            const token = localStorage.getItem("token");
-            const headers = {
-                "Content-Type": "application/json",
-            };
-            if (token) {
-                headers.Authorization = `Bearer ${token}`;
-            }
-            const response = await axios.post(
-                `https://bookcompass.onrender.com/api/reviews/${id}/reviews`,
-                reviewData,
-                { headers }
-            );
-            return response.data;
-        } catch (err) {
-            console.error("Error posting review:", err);
-            throw new Error(err.response?.data?.message || "Failed to post review");
         }
     };
 
     useEffect(() => {
         fetchTextbook();
         fetchReviews();
-        postReview();
     }, [id]);
 
     if (loading) {
         return (
             <Layout>
                 <div className="container px-4 py-8 md:px-6 md:py-12">
-                    <div className="flex items-center justify-center h-64">
-                        <div className="animate-spin rounded-full h-24 w-24 border-t-2 border-b-2 border-blue-500"></div>
+                    <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+                        {/* Skeleton for book cover */}
+                        <div className="flex justify-center md:col-span-1">
+                            <Skeleton className="aspect-[2/3] w-full max-w-[300px] h-[400px] rounded-lg" />
+                        </div>
+                        {/* Skeleton for book details */}
+                        <div className="md:col-span-1 lg:col-span-2 space-y-6">
+                            <Skeleton className="h-10 w-2/3 mb-2" />
+                            <Skeleton className="h-6 w-1/3 mb-4" />
+                            <Skeleton className="h-5 w-1/4 mb-2" />
+                            <Skeleton className="h-8 w-1/2 mb-4" />
+                            <Skeleton className="h-4 w-full mb-2" />
+                            <Skeleton className="h-4 w-5/6 mb-2" />
+                            <Skeleton className="h-4 w-1/2 mb-2" />
+                            <Skeleton className="h-10 w-1/3 mb-2" />
+                            <Skeleton className="h-10 w-1/3 mb-2" />
+                        </div>
+                    </div>
+                    {/* Skeleton for related books */}
+                    <div className="mt-16">
+                        <Skeleton className="h-8 w-1/4 mb-4" />
+                        <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                            {[...Array(5)].map((_, i) => (
+                                <Skeleton key={i} className="aspect-[2/3] w-full h-[200px] rounded-lg" />
+                            ))}
+                        </div>
                     </div>
                 </div>
             </Layout>
@@ -298,9 +302,9 @@ export default function TextBookDetail() {
     const handleSubmitReview = async (e) => {
         e.preventDefault();
         setReviewErrorMessage("");
-        if (!reviewFormData.name || !reviewFormData.email || !reviewFormData.title || !reviewFormData.review) {
+        if (!reviewFormData?.name || !reviewFormData?.email || !reviewFormData?.comment) {
             setReviewErrorMessage("Please fill in all required fields");
-            showNotification("Missing information", "Please fill in all required fields");
+            toast.error("Please fill in all required fields");
             return;
         }
 
@@ -319,36 +323,28 @@ export default function TextBookDetail() {
                 `https://bookcompass.onrender.com/api/reviews/${id}/reviews`,
                 {
                     rating: reviewFormData.rating,
-                    title: reviewFormData.title,
-                    content: reviewFormData.review,
+                    comment: reviewFormData.comment,
                     name: reviewFormData.name,
                     email: reviewFormData.email,
                 },
                 { headers }
             );
 
-            showNotification(
-                "Review submitted",
-                "Thank you for your feedback! Your review will be published after moderation."
-            );
-
-            // Refresh reviews and textbook data
-            await fetchReviews();
-            await fetchTextbook();
-            await postReview();
-
+            toast.success("Review submitted! Thank you for your feedback.");
             setReviewDialogOpen(false);
             setReviewFormData({
                 name: "",
                 email: "",
                 rating: 5,
-                title: "",
-                review: "",
+                comment: "",
             });
+
+            await fetchReviews();
+            await fetchTextbook();
         } catch (err) {
             const msg = err?.response?.data?.message || "Failed to submit review";
             setReviewErrorMessage(msg);
-            showNotification("Error submitting review", msg);
+            toast.error(msg);
         } finally {
             setReviewLoading(false);
         }
@@ -379,6 +375,7 @@ export default function TextBookDetail() {
 
     return (
         <Layout>
+            <ToastContainer />
             <div className="container px-4 py-8 md:px-6 md:py-12">
                 {/* Back button */}
                 <div className="mb-6">
@@ -563,33 +560,34 @@ export default function TextBookDetail() {
                                     </div>
                                     <div className="space-y-4">
                                         {reviewLoading ? (
-                                            <div className="flex justify-center py-4">
-                                                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                                            <div className="space-y-4">
+                                                {[...Array(2)].map((_, i) => (
+                                                    <Skeleton key={i} className="h-24 w-full rounded-lg" />
+                                                ))}
                                             </div>
                                         ) : reviewError ? (
                                             <p className="text-red-500">{reviewError}</p>
                                         ) : sortedReviews.length > 0 ? (
                                             <>
-                                                {sortedReviews.slice(0, visibleReviews).map((review, index) => (
-                                                    <div key={index} className="rounded-lg border p-4">
+                                                {sortedReviews.slice(0, visibleReviews).map((review) => (
+                                                    <div key={review._id} className="rounded-lg border p-4">
                                                         <div className="flex items-start justify-between">
                                                             <div>
                                                                 <div className="flex items-center space-x-1">
                                                                     {[...Array(5)].map((_, i) => (
                                                                         <Star
                                                                             key={i}
-                                                                            className={`h-4 w-4 ${i < review.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
+                                                                            className={`h-4 w-4 ${i < review?.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
                                                                         />
                                                                     ))}
                                                                 </div>
-                                                                <h3 className="mt-2 font-semibold">{review.title || "No title"}</h3>
                                                                 <p className="mt-1 text-sm text-muted-foreground">
-                                                                    By {review.name || "Anonymous"} • {new Date(review.createdAt || new Date()).toLocaleDateString()}
+                                                                    By {review?.user?.name || "Anonymous"} • {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : "Unknown date"}
                                                                 </p>
                                                             </div>
                                                         </div>
                                                         <p className="mt-4 text-sm text-muted-foreground">
-                                                            {review.content || "No review content"}
+                                                            {review.comment}
                                                         </p>
                                                     </div>
                                                 ))}
@@ -717,23 +715,11 @@ export default function TextBookDetail() {
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="title">Review Title</Label>
-                                <Input
-                                    id="title"
-                                    name="title"
-                                    value={reviewFormData.title}
-                                    onChange={handleReviewInputChange}
-                                    placeholder="Summarize your thoughts"
-                                    required
-                                    disabled={reviewErrorMessage === "You have already reviewed this book"}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="review">Your Review</Label>
+                                <Label htmlFor="comment">Your Review</Label>
                                 <Textarea
-                                    id="review"
-                                    name="review"
-                                    value={reviewFormData.review}
+                                    id="comment"
+                                    name="comment"
+                                    value={reviewFormData.comment}
                                     onChange={handleReviewInputChange}
                                     placeholder="What did you like or dislike about this textbook?"
                                     rows={5}
@@ -755,10 +741,7 @@ export default function TextBookDetail() {
                                     disabled={reviewLoading || reviewErrorMessage === "You have already reviewed this book"}
                                 >
                                     {reviewLoading ? (
-                                        <div className="flex items-center">
-                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                            Submitting...
-                                        </div>
+                                        <Skeleton className="h-6 w-24" />
                                     ) : reviewErrorMessage === "You have already reviewed this book" ? "Already Reviewed" : "Submit Review"}
                                 </Button>
                             </DialogFooter>

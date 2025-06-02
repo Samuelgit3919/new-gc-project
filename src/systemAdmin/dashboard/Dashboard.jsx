@@ -26,6 +26,7 @@ export default function Dashboard() {
                 })
                 if (!res.ok) throw new Error("Failed to fetch dashboard data")
                 const data = await res.json()
+                console.log(data)
                 setDashboardData(data.data || data)
             } catch (err) {
                 setError(err.message || "Failed to load dashboard data")

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 import Layout from "../../Layout";
 import { FaPlay, FaPause, FaStepForward, FaStepBackward, FaVolumeUp, FaCheckCircle, FaSearch } from 'react-icons/fa';
+import { Skeleton } from "../../components/ui/skeleton";
 
 export default function AudiobookDetail() {
     const { id } = useParams();
@@ -94,11 +95,19 @@ export default function AudiobookDetail() {
             <Layout>
                 <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
                     <div className="bg-white rounded-xl shadow-md p-8 max-w-md w-full text-center">
-                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 mb-4 animate-spin">
-                            <FaPlay className="h-6 w-6 text-blue-600" />
+                        <div className="flex flex-col items-center gap-6">
+                            <Skeleton className="w-32 h-32 rounded-lg mx-auto" />
+                            <Skeleton className="h-8 w-2/3 mx-auto" />
+                            <Skeleton className="h-5 w-1/2 mx-auto" />
+                            <Skeleton className="h-4 w-1/3 mx-auto" />
+                            <div className="flex gap-2 justify-center mt-4">
+                                <Skeleton className="h-10 w-10 rounded-full" />
+                                <Skeleton className="h-10 w-10 rounded-full" />
+                                <Skeleton className="h-10 w-10 rounded-full" />
+                            </div>
+                            <Skeleton className="h-4 w-full mt-4" />
+                            <Skeleton className="h-4 w-5/6 mt-2" />
                         </div>
-                        <h2 className="text-2xl font-bold text-gray-800 mb-2">Loading...</h2>
-                        <p className="text-gray-600">Fetching audiobook details</p>
                     </div>
                 </div>
             </Layout>

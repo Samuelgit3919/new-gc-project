@@ -23,6 +23,10 @@ import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { DataContext } from "@/DataProvider/DataProvider";
 import { Type } from "@/Utility/action.type";
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { Skeleton } from "../../components/ui/skeleton";
+
 
 // Configure PDF worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
@@ -34,11 +38,11 @@ export default function EbookDetail() {
         name: "",
         email: "",
         rating: 5,
-        title: "",
-        review: "",
+        comment: "",
     })
     const [visibleReviews, setVisibleReviews] = useState(2)
     const [ebook, setEbook] = useState({})
+    const [reviews, setReviews] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [isReaderOpen, setIsReaderOpen] = useState(false)
@@ -97,6 +101,21 @@ export default function EbookDetail() {
         setPdfLoading(false);
     }, [ebook.fileUrl, isReaderOpen]);
 
+    // Fetch reviews using the new endpoint
+    useEffect(() => {
+        const fetchReviews = async () => {
+            try {
+                const response = await fetch(`https://bookcompass.onrender.com/api/reviews/${id}/reviews`);
+                if (!response.ok) throw new Error('Failed to fetch reviews');
+                const data = await response.json();
+                setReviews(data.data || []);
+            } catch {
+                setReviews([]);
+            }
+        };
+        if (id) fetchReviews();
+    }, [id]);
+
     const getPdfUrl = (url) => {
         if (!url) return '';
 
@@ -112,7 +131,11 @@ export default function EbookDetail() {
 
     const showNotification = (title, description, type = "info") => {
         if (typeof window !== "undefined") {
-            alert(`${title}\n${description}`)
+            if (type === 'error') {
+                alert(`${title}\n${description}`)
+            } else {
+                toast.success(`${title}: ${description}`);
+            }
         }
         console.log(`[${type.toUpperCase()}] ${title}: ${description}`)
     }
@@ -140,8 +163,20 @@ export default function EbookDetail() {
         }
         const pdfUrl = getPdfUrl(ebook.fileUrl);
         const token = localStorage.getItem('token');
-        const authenticatedUrl = token ? `${pdfUrl}?token=${token}` : pdfUrl;
-        window.open(authenticatedUrl, '_blank', 'noopener');
+        let authenticatedUrl = pdfUrl;
+        console.log(pdfUrl)
+        if (token) {
+            // Append token as query param if not already present
+            const urlObj = new URL(pdfUrl, window.location.origin);
+            if (!urlObj.searchParams.has('token')) {
+                urlObj.searchParams.append('token', token);
+            }
+            authenticatedUrl = urlObj.toString();
+        }
+        const win = window.open(authenticatedUrl, '_blank', 'noopener');
+        if (!win) {
+            showNotification("Popup Blocked", "Please allow popups for this site to open the eBook in a new tab.", "error");
+        }
     };
 
     const handleToggleWishlist = async () => {
@@ -158,6 +193,7 @@ export default function EbookDetail() {
                     },
                     body: JSON.stringify({ bookId: ebook._id || ebook.id }),
                 });
+                console.log(res)
                 if (!res.ok) throw new Error('Failed to add to wishlist');
                 setIsWishlisted(true);
                 showNotification("Added to wishlist", ebook.title);
@@ -185,7 +221,7 @@ export default function EbookDetail() {
                 title: ebook.title,
                 text: `Check out this ebook: ${ebook.title} by ${ebook.author}`,
                 url: window.location.href,
-            }).catch(err => {
+            }).catch(() => {
                 copyToClipboard();
             });
         } else {
@@ -230,7 +266,7 @@ export default function EbookDetail() {
     const handleSubmitReview = async (e) => {
         e.preventDefault()
 
-        if (!reviewFormData.name || !reviewFormData.email || !reviewFormData.title || !reviewFormData.review) {
+        if (!reviewFormData.name || !reviewFormData.email || !reviewFormData.comment) {
             showNotification("Missing information", "Please fill in all required fields", "error")
             return
         }
@@ -242,10 +278,16 @@ export default function EbookDetail() {
                 'Authorization': `Bearer ${token}`
             } : { 'Content-Type': 'application/json' };
 
-            const response = await fetch(`https://bookcompass.onrender.com/api/books/${id}/reviews`, {
+            // Use the new POST endpoint
+            const response = await fetch(`https://bookcompass.onrender.com/api/reviews/${id}/reviews`, {
                 method: 'POST',
                 headers,
-                body: JSON.stringify(reviewFormData),
+                body: JSON.stringify({
+                    name: reviewFormData.name,
+                    email: reviewFormData.email,
+                    rating: reviewFormData.rating,
+                    comment: reviewFormData.comment,
+                }),
             })
 
             if (response.status === 401) {
@@ -256,28 +298,24 @@ export default function EbookDetail() {
                 throw new Error(`Failed to submit review: ${response.status}`);
             }
 
+            setReviewDialogOpen(false); // Close the dialog immediately
             showNotification(
                 "Review submitted",
                 "Thank you for your feedback! Your review will be published after moderation."
             )
 
-            const updatedResponse = await fetch(`https://bookcompass.onrender.com/api/books/singleBook/${id}`, {
-                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-            })
-            if (!updatedResponse.ok) {
-                throw new Error('Failed to fetch updated ebook data');
+            // Re-fetch reviews after submitting
+            const reviewsRes = await fetch(`https://bookcompass.onrender.com/api/reviews/${id}/reviews`);
+            if (reviewsRes.ok) {
+                const reviewsData = await reviewsRes.json();
+                setReviews(reviewsData.data || []);
             }
-            const updatedData = await updatedResponse.json();
-            setEbook(updatedData.data);
-            console.log(updatedData)
 
-            setReviewDialogOpen(false);
             setReviewFormData({
                 name: "",
                 email: "",
                 rating: 5,
-                title: "",
-                review: "",
+                comment: "",
             });
         } catch (err) {
             console.error('Error submitting review:', err);
@@ -342,8 +380,8 @@ export default function EbookDetail() {
             });
     }
 
-    // Sorting for reviews
-    const sortedReviews = ebook.reviews ? [...ebook.reviews].sort((a, b) => {
+    // Sorting for reviews (use new reviews state)
+    const sortedReviews = reviews ? [...reviews].sort((a, b) => {
         if (reviewSort === "date") {
             return new Date(b.date) - new Date(a.date);
         } else if (reviewSort === "rating") {
@@ -355,11 +393,33 @@ export default function EbookDetail() {
     if (loading) {
         return (
             <Layout>
-                <div className="container px-4 py-8 md:px-6 md:py-12 text-center">
-                    <div className="animate-pulse space-y-4">
-                        <div className="h-8 bg-gray-200 rounded w-1/4 mx-auto"></div>
-                        <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
-                        <div className="h-64 bg-gray-200 rounded w-full max-w-md mx-auto"></div>
+                <div className="container px-4 py-8 md:px-6 md:py-12">
+                    <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+                        {/* Skeleton for ebook cover */}
+                        <div className="flex justify-center md:col-span-1">
+                            <Skeleton className="aspect-[2/3] w-full max-w-[300px] h-[400px] rounded-lg" />
+                        </div>
+                        {/* Skeleton for ebook details */}
+                        <div className="md:col-span-1 lg:col-span-2 space-y-6">
+                            <Skeleton className="h-10 w-2/3 mb-2" />
+                            <Skeleton className="h-6 w-1/3 mb-4" />
+                            <Skeleton className="h-5 w-1/4 mb-2" />
+                            <Skeleton className="h-8 w-1/2 mb-4" />
+                            <Skeleton className="h-4 w-full mb-2" />
+                            <Skeleton className="h-4 w-5/6 mb-2" />
+                            <Skeleton className="h-4 w-1/2 mb-2" />
+                            <Skeleton className="h-10 w-1/3 mb-2" />
+                            <Skeleton className="h-10 w-1/3 mb-2" />
+                        </div>
+                    </div>
+                    {/* Skeleton for reviews */}
+                    <div className="mt-16">
+                        <Skeleton className="h-8 w-1/4 mb-4" />
+                        <div className="space-y-4">
+                            {[...Array(3)].map((_, i) => (
+                                <Skeleton key={i} className="h-24 w-full rounded-lg" />
+                            ))}
+                        </div>
                     </div>
                 </div>
             </Layout>
@@ -405,6 +465,7 @@ export default function EbookDetail() {
 
     return (
         <Layout>
+            <ToastContainer />
             <div className="container px-4 py-8 md:px-6 md:py-12">
                 <div className="mb-6">
                     <Button variant="ghost" size="sm" asChild>
@@ -619,7 +680,7 @@ export default function EbookDetail() {
                         {sortedReviews.length > 0 ? (
                             <>
                                 {sortedReviews.slice(0, visibleReviews).map((review) => (
-                                    <div key={review.id} className="rounded-lg border border-gray-200 p-6 dark:border-gray-800">
+                                    <div key={review._id} className="rounded-lg border border-gray-200 p-6 dark:border-gray-800">
                                         <div className="flex items-start justify-between">
                                             <div>
                                                 <div className="flex items-center space-x-1">
@@ -630,17 +691,14 @@ export default function EbookDetail() {
                                                         />
                                                     ))}
                                                 </div>
-                                                <h3 className="mt-2 font-semibold">{review.title}</h3>
                                                 <p className="mt-1 text-sm text-muted-foreground">
-                                                    By <span className="font-medium">{review.name}</span> on {review.date}
+                                                    By <span className="font-medium">{review.user?.name || "Anonymous"}</span> on {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : "Unknown date"}
                                                 </p>
                                             </div>
-                                            {review.verified && <Badge variant="outline">Verified Purchase</Badge>}
                                         </div>
-                                        <p className="mt-4 text-sm text-muted-foreground">{review.content}</p>
+                                        <p className="mt-4 text-sm text-muted-foreground">{review.comment}</p>
                                     </div>
                                 ))}
-
                                 {visibleReviews < sortedReviews.length && (
                                     <div className="flex justify-center">
                                         <Button variant="outline" onClick={handleLoadMoreReviews}>
@@ -713,23 +771,11 @@ export default function EbookDetail() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="title">Review Title *</Label>
-                                <Input
-                                    id="title"
-                                    name="title"
-                                    value={reviewFormData.title}
-                                    onChange={handleReviewInputChange}
-                                    placeholder="Summarize your thoughts"
-                                    required
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="review">Your Review *</Label>
+                                <Label htmlFor="comment">Your Review *</Label>
                                 <Textarea
-                                    id="review"
-                                    name="review"
-                                    value={reviewFormData.review}
+                                    id="comment"
+                                    name="comment"
+                                    value={reviewFormData.comment}
                                     onChange={handleReviewInputChange}
                                     placeholder="What did you like or dislike? What did you use this product for?"
                                     rows={5}
@@ -760,10 +806,8 @@ export default function EbookDetail() {
                         <div className="flex-1 overflow-auto border rounded-lg bg-gray-50">
                             {pdfLoading && (
                                 <div className="flex items-center justify-center h-full">
-                                    <div className="text-center">
-                                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
-                                        <p>Loading PDF document...</p>
-                                    </div>
+                                    <Skeleton className="h-12 w-12 rounded-full mx-auto mb-4" />
+                                    <p>Loading PDF document...</p>
                                 </div>
                             )}
 
@@ -806,10 +850,8 @@ export default function EbookDetail() {
                                         onLoadError={onDocumentLoadError}
                                         loading={
                                             <div className="flex items-center justify-center h-full">
-                                                <div className="text-center">
-                                                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
-                                                    <p>Loading PDF document...</p>
-                                                </div>
+                                                <Skeleton className="h-12 w-12 rounded-full mx-auto mb-4" />
+                                                <p>Loading PDF document...</p>
                                             </div>
                                         }
                                         error="Failed to load PDF"

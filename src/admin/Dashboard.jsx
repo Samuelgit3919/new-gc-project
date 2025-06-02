@@ -23,14 +23,24 @@ export default function Dashboard() {
                     },
                 };
 
-                const [bookRes, orderRes] = await Promise.all([
-                    axios.get("https://bookcompass.onrender.com/api/books/getBook/myBooks", config),
-                    axios.get("https://bookcompass.onrender.com/api/order/getOrder", config),
-                ]);
+                let bookRes = { data: { data: [] } };
+                let orderRes = { data: { data: [] } };
+                try {
+                    bookRes = await axios.get("https://bookcompass.onrender.com/api/books/getBook/myBooks", config);
+                } catch {
+                    bookRes = { data: { data: [] } };
+                }
+                try {
+                    orderRes = await axios.get("https://bookcompass.onrender.com/api/order/getOrder", config);
+                } catch {
+                    orderRes = { data: { data: [] } };
+                }
 
                 setBooks(Array.isArray(bookRes.data?.data) ? bookRes.data.data : [])
                 setOrders(Array.isArray(orderRes.data?.data) ? orderRes.data.data : [])
             } catch (error) {
+                setBooks([])
+                setOrders([])
                 console.error("Failed to fetch dashboard data", error)
             }
         }
@@ -178,6 +188,7 @@ export default function Dashboard() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{books.length.toLocaleString()}</div>
+                        {books.length === 0 && <p className="text-xs text-gray-500">No books found.</p>}
                         <p className="text-xs text-gray-500">
                             <span className={`flex items-center ${bookGrowth >= 0 ? "text-green-500" : "text-red-500"}`}>
                                 {bookGrowth >= 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
@@ -196,6 +207,7 @@ export default function Dashboard() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{orders.length.toLocaleString()}</div>
+                        {orders.length === 0 && <p className="text-xs text-gray-500">No orders found.</p>}
                         <p className="text-xs text-gray-500">
                             <span className={`flex items-center ${orderGrowth >= 0 ? "text-green-500" : "text-red-500"}`}>
                                 {orderGrowth >= 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}

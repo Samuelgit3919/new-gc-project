@@ -13,6 +13,7 @@ import { ChevronRight, Download } from "lucide-react";
 const Ebook = () => {
     const [ebooks, setEbooks] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedCategory, setSelectedCategory] = useState(null);
 
     // Fetch ebooks from API
     useEffect(() => {
@@ -36,6 +37,13 @@ const Ebook = () => {
         "Fiction", "Non-Fiction", "Mystery", "Science Fiction",
         "Business", "Self-Help", "Biography", "Fantasy",
     ];
+
+    // Filtered ebooks based on selected category
+    const filteredEbooks = selectedCategory
+        ? ebooks.filter((ebook) =>
+            (ebook.category || "").toLowerCase() === selectedCategory.toLowerCase()
+        )
+        : ebooks;
 
     const StarRating = ({ rating }) => (
         <div className="flex justify-center">
@@ -93,7 +101,9 @@ const Ebook = () => {
 
                         <TabsContent value="all" className="space-y-6">
                             <div className="flex items-center justify-between">
-                                <h2 className="text-2xl font-bold tracking-tight">All E-Books</h2>
+                                <h2 className="text-2xl font-bold tracking-tight">
+                                    {selectedCategory ? `${selectedCategory} E-Books` : "All E-Books"}
+                                </h2>
                                 <div className="flex items-center space-x-2">
                                     <select className="rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
                                         <option>Sort by: Relevance</option>
@@ -102,6 +112,14 @@ const Ebook = () => {
                                         <option>Newest</option>
                                         <option>Bestselling</option>
                                     </select>
+                                    {selectedCategory && (
+                                        <button
+                                            className="ml-2 px-3 py-1 rounded bg-gray-200 text-gray-700 text-xs hover:bg-gray-300"
+                                            onClick={() => setSelectedCategory(null)}
+                                        >
+                                            Clear Filter
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
@@ -113,7 +131,7 @@ const Ebook = () => {
                                     ))
                                 ) : (
                                     // Show actual ebook cards when loaded
-                                    ebooks.map((ebook) => (
+                                    filteredEbooks.map((ebook) => (
                                         <Link key={ebook._id} to={`/EBook/${ebook._id}`}>
                                             <Card className="h-full overflow-hidden transition-all hover:shadow-md">
                                                 <div className="relative aspect-[2/3] w-full overflow-hidden">
@@ -174,14 +192,14 @@ const Ebook = () => {
                         <h2 className="text-2xl font-bold tracking-tight">Browse by Category</h2>
                         <div className="flex flex-wrap gap-2">
                             {ebookCategories.map((category) => (
-                                <Link
+                                <button
                                     key={category}
-                                    to={`/ebooks?category=${encodeURIComponent(category)}`}
-                                    className="inline-flex items-center rounded-full border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted/50"
+                                    onClick={() => setSelectedCategory(category)}
+                                    className={`inline-flex items-center rounded-full border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted/50 ${selectedCategory === category ? 'bg-primary text-white' : ''}`}
                                 >
                                     {category}
                                     <ChevronRight className="ml-1 h-4 w-4" />
-                                </Link>
+                                </button>
                             ))}
                         </div>
                     </div>

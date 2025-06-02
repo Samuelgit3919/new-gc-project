@@ -360,7 +360,7 @@ export default function AccountPage() {
                                 <Button variant={activeTab === "orders" ? "default" : "ghost"} className="w-full justify-start" onClick={() => setActiveTab("orders")}>
                                     <Package className="mr-2 h-4 w-4" /> Orders
                                 </Button>
-                                <Button variant={activeTab === "wishlist" ? "default" : "ghost"} className="w-full justify-start" onClick={() => setActiveTab("wishlist")}>
+                                <Button variant={activeTab === "wishList" ? "default" : "ghost"} className="w-full justify-start" onClick={() => setActiveTab("wishlist")}>
                                     <Book className="mr-2 h-4 w-4" /> Wishlist
                                 </Button>
                                 <Button variant={activeTab === "payment" ? "default" : "ghost"} className="w-full justify-start" onClick={() => setActiveTab("payment")}>

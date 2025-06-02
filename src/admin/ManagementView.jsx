@@ -29,6 +29,9 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { toast } from "react-hot-toast"
+import axios from "axios"
+import { Skeleton } from "../components/ui/skeleton"
 
 export default function ManagementView({
     activeView,
@@ -65,6 +68,11 @@ export default function ManagementView({
     // API endpoints
     const API_BASE_URL = "https://bookcompass.onrender.com/api/books"
 
+    // Loading states
+    const [loadingSettings, setLoadingSettings] = useState(false)
+    const [loadingBooks, setLoadingBooks] = useState(false)
+    const [loadingOrders, setLoadingOrders] = useState(false)
+
     // Fetch books from API
     const fetchBooks = async () => {
         const token = localStorage.getItem("token")
@@ -99,8 +107,42 @@ export default function ManagementView({
     }
 
     useEffect(() => {
-        if (activeView === "books") fetchBooks()
-        if (activeView === "orders") fetchOrders()
+        if (activeView === "books") {
+            setLoadingBooks(true)
+            fetchBooks().finally(() => setLoadingBooks(false))
+        }
+        if (activeView === "orders") {
+            setLoadingOrders(true)
+            fetchOrders().finally(() => setLoadingOrders(false))
+        }
+        if (activeView === "settings") {
+            setLoadingSettings(true)
+            const fetchBookshop = async () => {
+                try {
+                    const token = localStorage.getItem("token")
+                    const shopId = localStorage.getItem("bookshopId")
+                    if (!token || !shopId) return
+                    const res = await axios.get(`https://bookcompass.onrender.com/api/bookshop/${shopId}`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    })
+                    if (res.data && res.data.data) {
+                        setSettingsFormData({
+                            storeName: res.data.data.name || "",
+                            email: res.data.data.email || "",
+                            phone: res.data.data.phone || "",
+                            currency: res.data.data.currency || "usd",
+                            address: res.data.data.address || "",
+                            notifications: res.data.data.notifications || { newOrder: true, lowStock: true },
+                        })
+                    }
+                } catch {
+                    toast.error("Failed to fetch bookshop details")
+                } finally {
+                    setLoadingSettings(false)
+                }
+            }
+            fetchBookshop()
+        }
     }, [activeView])
 
     // Helper functions
@@ -239,6 +281,8 @@ export default function ManagementView({
             description: "",
             imgUrl: "",
             BookTypeOption: "PhysicalBook",
+            status: "Active",
+            file: null,
         })
         setIsDialogOpen(true)
     }
@@ -255,6 +299,8 @@ export default function ManagementView({
             description: item.description || "",
             imgUrl: item.imgUrl || "",
             BookTypeOption: item.BookTypeOption || "PhysicalBook",
+            status: item.status || "Active",
+            file: null,
         })
         setIsDialogOpen(true)
     }
@@ -291,7 +337,8 @@ export default function ManagementView({
 
             const token = localStorage.getItem("token")
             if (!token) {
-                alert("You are not authenticated.");
+                toast.error("You are not authenticated.");
+                setIsDialogOpen(false);
                 return;
             }
 
@@ -310,8 +357,8 @@ export default function ManagementView({
                 payload.append("imgUrl", formData.imgUrl)
                 payload.append("BookTypeOption", formData.BookTypeOption)
                 payload.append("status", status)
-                payload.append("file", formData.file)
-                headers = { Authorization: `Bearer ${token}` }
+                payload.append("file", formData.file),
+                    headers = { Authorization: `Bearer ${token}` }
             } else {
                 // No file, send JSON
                 payload = JSON.stringify({
@@ -345,15 +392,24 @@ export default function ManagementView({
                     body: payload,
                 })
                 const data = await res.json();
+                console.log(data)
                 console.log('Book save response:', data);
                 if (!res.ok) {
-                    alert(data.message || "Failed to save book");
+                    // Check for duplicate ISBN error
+                    if (data.error && data.error.includes("duplicate key error") && data.error.includes("isbn")) {
+                        toast.error("A book with this ISBN already exists.");
+                    } else {
+                        toast.error(data.message || "Failed to save book");
+                    }
+                    setIsDialogOpen(false);
                     return;
                 }
                 setIsDialogOpen(false)
+                toast.success("Book saved successfully!");
                 await fetchBooks()
             } catch (err) {
-                alert("Failed to save book. Please try again.");
+                toast.error("Failed to save book. Please try again.");
+                setIsDialogOpen(false);
                 console.error(err);
                 return;
             }
@@ -386,9 +442,31 @@ export default function ManagementView({
         }))
     }
 
-    const handleSaveSettings = () => {
-        setSettings(settingsFormData)
-        alert("Settings saved successfully!")
+    const handleSaveSettings = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            const shopId = localStorage.getItem("bookshopId");
+            if (!token || !shopId) {
+                toast.error("Missing authentication or shop ID");
+                return;
+            }
+            // Only update the listed fields
+            const updateFields = {
+                name: settingsFormData.storeName,
+                email: settingsFormData.email,
+                phone: settingsFormData.phone,
+                currency: settingsFormData.currency,
+                address: settingsFormData.address,
+                notifications: settingsFormData.notifications,
+            };
+            await axios.patch(`https://bookcompass.onrender.com/api/bookshop/update-fields`, updateFields, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setSettings(settingsFormData);
+            toast.success("Settings saved successfully!");
+        } catch (err) {
+            toast.error("Failed to update bookshop settings");
+        }
     }
 
     // Get filter options
@@ -429,54 +507,63 @@ export default function ManagementView({
                             <CardDescription>Update your bookstore details and contact information.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div className="space-y-2">
-                                    <Label htmlFor="storeName">Store Name</Label>
-                                    <Input
-                                        id="storeName"
-                                        name="storeName"
-                                        value={settingsFormData.storeName}
-                                        onChange={handleSettingsChange}
-                                    />
+                            {loadingSettings ? (
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    {[...Array(4)].map((_, i) => (
+                                        <Skeleton key={i} className="h-12 w-full" />
+                                    ))}
+                                    <Skeleton className="h-20 w-full col-span-2" />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="email">Email Address</Label>
-                                    <Input
-                                        id="email"
-                                        name="email"
-                                        type="email"
-                                        value={settingsFormData.email}
-                                        onChange={handleSettingsChange}
-                                    />
+                            ) : (
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="storeName">Store Name</Label>
+                                        <Input
+                                            id="storeName"
+                                            name="storeName"
+                                            value={settingsFormData.storeName}
+                                            onChange={handleSettingsChange}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="email">Email Address</Label>
+                                        <Input
+                                            id="email"
+                                            name="email"
+                                            type="email"
+                                            value={settingsFormData.email}
+                                            onChange={handleSettingsChange}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="phone">Phone Number</Label>
+                                        <Input
+                                            id="phone"
+                                            name="phone"
+                                            type="tel"
+                                            value={settingsFormData.phone}
+                                            onChange={handleSettingsChange}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="currency">Currency</Label>
+                                        <Select
+                                            value={settingsFormData.currency}
+                                            onValueChange={(value) => setSettingsFormData((prev) => ({ ...prev, currency: value }))}
+                                        >
+                                            <SelectTrigger id="currency">
+                                                <SelectValue placeholder="Select currency" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="usd">USD ($)</SelectItem>
+                                                <SelectItem value="eur">EUR (€)</SelectItem>
+                                                <SelectItem value="gbp">GBP (£)</SelectItem>
+                                                <SelectItem value="cad">CAD ($)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="phone">Phone Number</Label>
-                                    <Input
-                                        id="phone"
-                                        name="phone"
-                                        type="tel"
-                                        value={settingsFormData.phone}
-                                        onChange={handleSettingsChange}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="currency">Currency</Label>
-                                    <Select
-                                        value={settingsFormData.currency}
-                                        onValueChange={(value) => setSettingsFormData((prev) => ({ ...prev, currency: value }))}
-                                    >
-                                        <SelectTrigger id="currency">
-                                            <SelectValue placeholder="Select currency" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="usd">USD ($)</SelectItem>
-                                            <SelectItem value="eur">EUR (€)</SelectItem>
-                                            <SelectItem value="gbp">GBP (£)</SelectItem>
-                                            <SelectItem value="cad">CAD ($)</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
+                            )}
                             <div className="space-y-2">
                                 <Label htmlFor="address">Address</Label>
                                 <Textarea
@@ -488,7 +575,7 @@ export default function ManagementView({
                             </div>
                         </CardContent>
                         <CardFooter>
-                            <Button onClick={handleSaveSettings}>Save Changes</Button>
+                            {loadingSettings ? <Skeleton className="h-10 w-32" /> : <Button onClick={handleSaveSettings}>Save Changes</Button>}
                         </CardFooter>
                     </Card>
 
@@ -498,31 +585,40 @@ export default function ManagementView({
                             <CardDescription>Configure which emails you want to receive.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div className="space-y-0.5">
-                                    <Label htmlFor="newOrder">New Order</Label>
-                                    <p className="text-sm text-gray-500">Receive an email when a new order is placed.</p>
-                                </div>
-                                <Switch
-                                    id="newOrder"
-                                    checked={settingsFormData.notifications.newOrder}
-                                    onCheckedChange={(checked) => handleNotificationChange("newOrder", checked)}
-                                />
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <div className="space-y-0.5">
-                                    <Label htmlFor="lowStock">Low Stock Alert</Label>
-                                    <p className="text-sm text-gray-500">Get notified when a book is running low on stock.</p>
-                                </div>
-                                <Switch
-                                    id="lowStock"
-                                    checked={settingsFormData.notifications.lowStock}
-                                    onCheckedChange={(checked) => handleNotificationChange("lowStock", checked)}
-                                />
-                            </div>
+                            {loadingSettings ? (
+                                <>
+                                    <Skeleton className="h-10 w-full mb-2" />
+                                    <Skeleton className="h-10 w-full" />
+                                </>
+                            ) : (
+                                <>
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-0.5">
+                                            <Label htmlFor="newOrder">New Order</Label>
+                                            <p className="text-sm text-gray-500">Receive an email when a new order is placed.</p>
+                                        </div>
+                                        <Switch
+                                            id="newOrder"
+                                            checked={settingsFormData.notifications.newOrder}
+                                            onCheckedChange={(checked) => handleNotificationChange("newOrder", checked)}
+                                        />
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-0.5">
+                                            <Label htmlFor="lowStock">Low Stock Alert</Label>
+                                            <p className="text-sm text-gray-500">Get notified when a book is running low on stock.</p>
+                                        </div>
+                                        <Switch
+                                            id="lowStock"
+                                            checked={settingsFormData.notifications.lowStock}
+                                            onCheckedChange={(checked) => handleNotificationChange("lowStock", checked)}
+                                        />
+                                    </div>
+                                </>
+                            )}
                         </CardContent>
                         <CardFooter>
-                            <Button onClick={handleSaveSettings}>Save Preferences</Button>
+                            {loadingSettings ? <Skeleton className="h-10 w-32" /> : <Button onClick={handleSaveSettings}>Save Preferences</Button>}
                         </CardFooter>
                     </Card>
                 </div>
@@ -541,7 +637,7 @@ export default function ManagementView({
                         {activeView === "users" && "User Management"}
                     </h1>
                     {activeView === "books" && (
-                        <Button onClick={handleAdd}>
+                        <Button onClick={handleAdd} disabled={loadingBooks}>
                             <Plus className="mr-2 h-4 w-4" />
                             Add Book
                         </Button>
@@ -613,148 +709,156 @@ export default function ManagementView({
             </div>
 
             <div className="rounded-md border bg-white dark:bg-gray-800">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            {activeView === "books" && (
-                                <>
-                                    <TableHead>Book</TableHead>
-                                    <TableHead>ISBN</TableHead>
-                                    <TableHead>Category</TableHead>
-                                    <TableHead className="text-right">Price</TableHead>
-                                    <TableHead className="text-right">Stock</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </>
-                            )}
-                            {activeView === "orders" && (
-                                <>
-                                    <TableHead>Order ID</TableHead>
-                                    <TableHead>Customer</TableHead>
-                                    <TableHead>Date</TableHead>
-                                    <TableHead>Items</TableHead>
-                                    <TableHead className="text-right">Total</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </>
-                            )}
-                            {activeView === "users" && (
-                                <>
-                                    <TableHead>User</TableHead>
-                                    <TableHead>Role</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Join Date</TableHead>
-                                    <TableHead className="text-right">Orders</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </>
-                            )}
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {currentItems.length > 0 ? (
-                            currentItems.map((item) => (
-                                <TableRow key={item.id}>
-                                    {activeView === "books" ? (
-                                        <>
-                                            <TableCell>
-                                                <div className="flex items-center gap-3">
-                                                    <Avatar className="h-9 w-9 rounded-sm">
-                                                        <AvatarImage src={item.image || "/placeholder.svg"} alt={item.title} />
-                                                        <AvatarFallback className="rounded-sm">{item.title.substring(0, 2)}</AvatarFallback>
-                                                    </Avatar>
-                                                    <div>
-                                                        <p className="font-medium">{item.title}</p>
-                                                        <p className="text-sm text-gray-500">{item.author}</p>
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>{item.isbn}</TableCell>
-                                            <TableCell>{item.category}</TableCell>
-                                            <TableCell className="text-right">${item.price.toFixed(2)}</TableCell>
-                                            <TableCell className="text-right">{item.stock}</TableCell>
-                                            <TableCell>
-                                                <Badge className={getStatusColor(item.status)} variant="outline">
-                                                    {item.status}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
-                                                        <Edit className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
-                                                        <Trash2 className="h-4 w-4 text-red-500" />
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                        </>
-                                    ) : null}
-                                    {activeView === "orders" && (
-                                        <>
-                                            <TableCell className="font-medium">{item.id}</TableCell>
-                                            <TableCell>
-                                                <div>
-                                                    <p>{item.customer}</p>
-                                                    <p className="text-sm text-gray-500">{item.email}</p>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>{item.date}</TableCell>
-                                            <TableCell>
-                                                {Array.isArray(item.items)
-                                                    ? item.items.map((orderItem, idx) => {
-                                                        // Try to show book title and quantity
-                                                        let bookTitle = orderItem.book?.title || orderItem.book?.name || orderItem.book || "Book";
-                                                        return (
-                                                            <span key={orderItem._id || idx}>
-                                                                {bookTitle} (x{orderItem.quantity}){idx < item.items.length - 1 ? ", " : ""}
-                                                            </span>
-                                                        );
-                                                    })
-                                                    : String(item.items)}
-                                            </TableCell>
-                                            <TableCell className="text-right">${item.total}</TableCell>
-                                            <TableCell>
-                                                <Badge className={getStatusColor(item.status)} variant="outline">
-                                                    {item.status}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Button variant="ghost" size="icon" onClick={() => handleViewOrder(item)}>
-                                                    <Eye className="h-4 w-4" />
-                                                </Button>
-                                            </TableCell>
-                                        </>
-                                    )}
-                                    {activeView === "users" && (
-                                        <>
-                                            <TableCell>{item.name}</TableCell>
-                                            <TableCell>{item.role}</TableCell>
-                                            <TableCell>{item.status}</TableCell>
-                                            <TableCell>{item.joinDate}</TableCell>
-                                            <TableCell className="text-right">{item.orders}</TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
-                                                        <Edit className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
-                                                        <Trash2 className="h-4 w-4 text-red-500" />
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                        </>
-                                    )}
-                                </TableRow>
-                            ))
-                        ) : (
+                {loadingBooks || loadingOrders ? (
+                    <div className="p-8">
+                        {[...Array(5)].map((_, i) => (
+                            <Skeleton key={i} className="h-12 w-full mb-4" />
+                        ))}
+                    </div>
+                ) : (
+                    <Table>
+                        <TableHeader>
                             <TableRow>
-                                <TableCell colSpan={7} className="text-center py-4">
-                                    No {activeView} found matching your criteria
-                                </TableCell>
+                                {activeView === "books" && (
+                                    <>
+                                        <TableHead>Book</TableHead>
+                                        <TableHead>ISBN</TableHead>
+                                        <TableHead>Category</TableHead>
+                                        <TableHead className="text-right">Price</TableHead>
+                                        <TableHead className="text-right">Stock</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
+                                    </>
+                                )}
+                                {activeView === "orders" && (
+                                    <>
+                                        <TableHead>Order ID</TableHead>
+                                        <TableHead>Customer</TableHead>
+                                        <TableHead>Date</TableHead>
+                                        <TableHead>Items</TableHead>
+                                        <TableHead className="text-right">Total</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
+                                    </>
+                                )}
+                                {activeView === "users" && (
+                                    <>
+                                        <TableHead>User</TableHead>
+                                        <TableHead>Role</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead>Join Date</TableHead>
+                                        <TableHead className="text-right">Orders</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
+                                    </>
+                                )}
                             </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
+                        </TableHeader>
+                        <TableBody>
+                            {currentItems.length > 0 ? (
+                                currentItems.map((item) => (
+                                    <TableRow key={item.id}>
+                                        {activeView === "books" ? (
+                                            <>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-3">
+                                                        <Avatar className="h-9 w-9 rounded-sm">
+                                                            <AvatarImage src={item.image || "/placeholder.svg"} alt={item.title} />
+                                                            <AvatarFallback className="rounded-sm">{item.title.substring(0, 2)}</AvatarFallback>
+                                                        </Avatar>
+                                                        <div>
+                                                            <p className="font-medium">{item.title}</p>
+                                                            <p className="text-sm text-gray-500">{item.author}</p>
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>{item.isbn}</TableCell>
+                                                <TableCell>{item.category}</TableCell>
+                                                <TableCell className="text-right">${item.price.toFixed(2)}</TableCell>
+                                                <TableCell className="text-right">{item.stock}</TableCell>
+                                                <TableCell>
+                                                    <Badge className={getStatusColor(item.status)} variant="outline">
+                                                        {item.status}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                                                            <Edit className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
+                                                            <Trash2 className="h-4 w-4 text-red-500" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </>
+                                        ) : null}
+                                        {activeView === "orders" && (
+                                            <>
+                                                <TableCell className="font-medium">{item.id}</TableCell>
+                                                <TableCell>
+                                                    <div>
+                                                        <p>{item.customer}</p>
+                                                        <p className="text-sm text-gray-500">{item.email}</p>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>{item.date}</TableCell>
+                                                <TableCell>
+                                                    {Array.isArray(item.items)
+                                                        ? item.items.map((orderItem, idx) => {
+                                                            // Try to show book title and quantity
+                                                            let bookTitle = orderItem.book?.title || orderItem.book?.name || orderItem.book || "Book";
+                                                            return (
+                                                                <span key={orderItem._id || idx}>
+                                                                    {bookTitle} (x{orderItem.quantity}){idx < item.items.length - 1 ? ", " : ""}
+                                                                </span>
+                                                            );
+                                                        })
+                                                        : String(item.items)}
+                                                </TableCell>
+                                                <TableCell className="text-right">${item.total}</TableCell>
+                                                <TableCell>
+                                                    <Badge className={getStatusColor(item.status)} variant="outline">
+                                                        {item.status}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button variant="ghost" size="icon" onClick={() => handleViewOrder(item)}>
+                                                        <Eye className="h-4 w-4" />
+                                                    </Button>
+                                                </TableCell>
+                                            </>
+                                        )}
+                                        {activeView === "users" && (
+                                            <>
+                                                <TableCell>{item.name}</TableCell>
+                                                <TableCell>{item.role}</TableCell>
+                                                <TableCell>{item.status}</TableCell>
+                                                <TableCell>{item.joinDate}</TableCell>
+                                                <TableCell className="text-right">{item.orders}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                                                            <Edit className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
+                                                            <Trash2 className="h-4 w-4 text-red-500" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </>
+                                        )}
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={7} className="text-center py-4">
+                                        No {activeView} found matching your criteria
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                )}
             </div>
 
             {
@@ -814,137 +918,155 @@ export default function ManagementView({
             {
                 activeView === "books" && (
                     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                        <DialogContent className="sm:max-w-[500px]">
+                        <DialogContent className="sm:max-w-[400px] p-4">
                             <DialogHeader>
                                 <DialogTitle>{editingItem ? "Edit Book" : "Add New Book"}</DialogTitle>
                             </DialogHeader>
-                            <div className="space-y-4 py-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="title">Title</Label>
-                                        <Input
-                                            id="title"
-                                            value={formData.title || ""}
-                                            onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
+                            <div className="space-y-2 py-2">
+                                <div className="grid grid-cols-1 gap-2">
+                                    <div className="flex gap-2">
+                                        <div className="flex-1">
+                                            <Label htmlFor="title">Title</Label>
+                                            <Input
+                                                id="title"
+                                                value={formData.title || ""}
+                                                onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
+                                            />
+                                        </div>
+                                        <div className="flex-1">
+                                            <Label htmlFor="author">Author</Label>
+                                            <Input
+                                                id="author"
+                                                value={formData.author || ""}
+                                                onChange={(e) => setFormData((prev) => ({ ...prev, author: e.target.value }))}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <div className="flex-1">
+                                            <Label htmlFor="isbn">ISBN</Label>
+                                            <Input
+                                                id="isbn"
+                                                value={formData.isbn || ""}
+                                                onChange={(e) => setFormData((prev) => ({ ...prev, isbn: e.target.value }))}
+                                            />
+                                        </div>
+                                        <div className="flex-1">
+                                            <Label htmlFor="category">Category</Label>
+                                            <Select
+                                                value={formData.category || ""}
+                                                onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value }))}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select category" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="Fiction">Fiction</SelectItem>
+                                                    <SelectItem value="Mystery">Mystery</SelectItem>
+                                                    <SelectItem value="Romance">Romance</SelectItem>
+                                                    <SelectItem value="Science Fiction">Science Fiction</SelectItem>
+                                                    <SelectItem value="Fantasy">Fantasy</SelectItem>
+                                                    <SelectItem value="Horror">Horror</SelectItem>
+                                                    <SelectItem value="Thriller">Thriller</SelectItem>
+                                                    <SelectItem value="Historical Fiction">Historical Fiction</SelectItem>
+                                                    <SelectItem value="Biography">Biography</SelectItem>
+                                                    <SelectItem value="Self-Help">Self-Help</SelectItem>
+                                                    <SelectItem value="Business">Business</SelectItem>
+                                                    <SelectItem value="Science">Science</SelectItem>
+                                                    <SelectItem value="Philosophy">Philosophy</SelectItem>
+                                                    <SelectItem value="Poetry">Poetry</SelectItem>
+                                                    <SelectItem value="Children">Children</SelectItem>
+                                                    <SelectItem value="Young Adult">Young Adult</SelectItem>
+                                                    <SelectItem value="Travel">Travel</SelectItem>
+                                                    <SelectItem value="Cooking">Cooking</SelectItem>
+                                                    <SelectItem value="Art">Art</SelectItem>
+                                                    <SelectItem value="History">History</SelectItem>
+                                                    <SelectItem value="Other">Other</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <div className="flex-1">
+                                            <Label htmlFor="price">Price ($)</Label>
+                                            <Input
+                                                id="price"
+                                                type="number"
+                                                step="0.01"
+                                                value={formData.price || ""}
+                                                onChange={(e) => setFormData((prev) => ({ ...prev, price: Number.parseFloat(e.target.value) || 0 }))}
+                                            />
+                                        </div>
+                                        <div className="flex-1">
+                                            <Label htmlFor="stock">Stock</Label>
+                                            <Input
+                                                id="stock"
+                                                type="number"
+                                                value={formData.stock || ""}
+                                                onChange={(e) => setFormData((prev) => ({ ...prev, stock: Number.parseInt(e.target.value) || 0 }))}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <div className="flex-1">
+                                            <Label htmlFor="imgUrl">Image URL</Label>
+                                            <Input
+                                                id="imgUrl"
+                                                value={formData.imgUrl || ""}
+                                                onChange={(e) => setFormData((prev) => ({ ...prev, imgUrl: e.target.value }))}
+                                            />
+                                        </div>
+                                        <div className="flex-1">
+                                            <Label htmlFor="fileUrl">File URL</Label>
+                                            <Input
+                                                id="fileUrl"
+                                                value={formData.fileUrl || ""}
+                                                onChange={(e) => setFormData((prev) => ({ ...prev, fileUrl: e.target.value }))}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <div className="flex-1">
+                                            <Label htmlFor="BookTypeOption">Book Type</Label>
+                                            <Select
+                                                value={formData.BookTypeOption || "PhysicalBook"}
+                                                onValueChange={(value) => setFormData((prev) => ({ ...prev, BookTypeOption: value }))}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select type" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="PhysicalBook">Physical Book</SelectItem>
+                                                    <SelectItem value="Ebook">Ebook</SelectItem>
+                                                    <SelectItem value="AudioBook">Audio Book</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="flex-1">
+                                            <Label htmlFor="file">File (PDF or MP3)</Label>
+                                            <Input
+                                                id="file"
+                                                type="file"
+                                                accept=".pdf,.mp3"
+                                                onChange={e => {
+                                                    const file = e.target.files[0];
+                                                    setFormData(prev => ({ ...prev, file }));
+                                                }}
+                                            />
+                                            {editingItem && formData.fileUrl && (
+                                                <a href={formData.fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-xs">Current file</a>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="description">Description</Label>
+                                        <Textarea
+                                            id="description"
+                                            value={formData.description || ""}
+                                            onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                                            className="min-h-[60px] max-h-[80px]"
                                         />
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="author">Author</Label>
-                                        <Input
-                                            id="author"
-                                            value={formData.author || ""}
-                                            onChange={(e) => setFormData((prev) => ({ ...prev, author: e.target.value }))}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="isbn">ISBN</Label>
-                                        <Input
-                                            id="isbn"
-                                            value={formData.isbn || ""}
-                                            onChange={(e) => setFormData((prev) => ({ ...prev, isbn: e.target.value }))}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="category">Category</Label>
-                                        <Select
-                                            value={formData.category || ""}
-                                            onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value }))}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select category" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="Fiction">Fiction</SelectItem>
-                                                <SelectItem value="Non-Fiction">Non-Fiction</SelectItem>
-                                                <SelectItem value="Sci-Fi">Sci-Fi</SelectItem>
-                                                <SelectItem value="Mystery">Mystery</SelectItem>
-                                                <SelectItem value="Thriller">Thriller</SelectItem>
-                                                <SelectItem value="Self-Help">Self-Help</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="price">Price ($)</Label>
-                                        <Input
-                                            id="price"
-                                            type="number"
-                                            step="0.01"
-                                            value={formData.price || ""}
-                                            onChange={(e) =>
-                                                setFormData((prev) => ({ ...prev, price: Number.parseFloat(e.target.value) || 0 }))
-                                            }
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="stock">Stock</Label>
-                                        <Input
-                                            id="stock"
-                                            type="number"
-                                            value={formData.stock || ""}
-                                            onChange={(e) => setFormData((prev) => ({ ...prev, stock: Number.parseInt(e.target.value) || 0 }))}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="description">Description</Label>
-                                    <Textarea
-                                        id="description"
-                                        value={formData.description || ""}
-                                        onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                                    />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="imgUrl">Image URL</Label>
-                                        <Input
-                                            id="imgUrl"
-                                            value={formData.imgUrl || ""}
-                                            onChange={(e) => setFormData((prev) => ({ ...prev, imgUrl: e.target.value }))}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="fileUrl">File URL</Label>
-                                        <Input
-                                            id="fileUrl"
-                                            value={formData.fileUrl || ""}
-                                            onChange={(e) => setFormData((prev) => ({ ...prev, fileUrl: e.target.value }))}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="BookTypeOption">Book Type</Label>
-                                    <Select
-                                        value={formData.BookTypeOption || "PhysicalBook"}
-                                        onValueChange={(value) => setFormData((prev) => ({ ...prev, BookTypeOption: value }))}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select type" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="PhysicalBook">Physical Book</SelectItem>
-                                            <SelectItem value="Ebook">Ebook</SelectItem>
-                                            <SelectItem value="AudioBook">Audio Book</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="file">File (PDF or MP3)</Label>
-                                    <Input
-                                        id="file"
-                                        type="file"
-                                        accept=".pdf,.mp3"
-                                        onChange={e => {
-                                            const file = e.target.files[0];
-                                            setFormData(prev => ({ ...prev, file }));
-                                        }}
-                                    />
-                                    {editingItem && formData.fileUrl && (
-                                        <a href={formData.fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-xs">Current file</a>
-                                    )}
                                 </div>
                             </div>
                             <DialogFooter>

@@ -11,12 +11,28 @@ import { Badge } from "../../components/ui/badge";
 import Layout from "../../Layout";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from "../../components/ui/dialog";
+import { Label } from "../../components/ui/label";
+import { Skeleton } from "../../components/ui/skeleton";
 
 const ShopDetail = () => {
     const { id } = useParams();
     const [store, setStore] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+    const [reviewFormData, setReviewFormData] = useState({
+        name: "",
+        email: "",
+        rating: 5,
+        comment: "",
+    });
 
     useEffect(() => {
         const fetchStoreDetails = async () => {
@@ -99,7 +115,8 @@ const ShopDetail = () => {
                         image: event.image || "https://images.unsplash.com/photo-1522202176988-66273c2fd55f"
                     })) || [],
                     paymentOptions: data.data.paymentOptions || [],
-                    seller: data.data.seller || {}
+                    seller: data.data.seller || {},
+                    reviews: data.data.reviews || []
                 };
 
                 setStore(formattedStore);
@@ -115,12 +132,95 @@ const ShopDetail = () => {
         fetchStoreDetails();
     }, [id]);
 
+    const handleReviewInputChange = (e) => {
+        const { name, value } = e.target;
+        setReviewFormData((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+    };
+
+    const handleRatingChange = (rating) => {
+        setReviewFormData((prev) => ({
+            ...prev,
+            rating,
+        }));
+    };
+
+    const handleSubmitReview = async (e) => {
+        e.preventDefault();
+        if (!reviewFormData.name || !reviewFormData.email || !reviewFormData.comment) {
+            toast.error("Please fill in all required fields");
+            return;
+        }
+        const token = localStorage.getItem("token");
+        if (!token) {
+            toast.error("You must be logged in to write a review.");
+            setReviewDialogOpen(false);
+            return;
+        }
+        try {
+            const headers = {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            };
+            const response = await fetch(`https://bookcompass.onrender.com/api/bookshop/${id}/reviews`, {
+                method: "POST",
+                headers,
+                body: JSON.stringify(reviewFormData),
+            });
+            if (response.status === 403) {
+                toast.error("You do not have permission to write a review.");
+                setReviewDialogOpen(false);
+                const data = await response.json();
+                console.log(data)
+                return;
+            }
+            if (!response.ok) throw new Error("Failed to submit review");
+            toast.success("Review submitted! Thank you for your feedback.");
+            setReviewDialogOpen(false);
+            setReviewFormData({
+                name: "",
+                email: "",
+                rating: 5,
+                comment: "",
+            });
+            // Re-fetch reviews
+            const reviewsRes = await fetch(`https://bookcompass.onrender.com/api/bookshop/${id}/reviews`);
+            if (reviewsRes.ok) {
+                const reviewsData = await reviewsRes.json();
+                setStore(prev => ({ ...prev, reviews: reviewsData.data || [] }));
+            }
+        } catch (err) {
+            toast.error(err.message || "Failed to submit review");
+            setReviewDialogOpen(false);
+        }
+    };
+
     if (loading) {
         return (
             <Layout>
                 <div className="container px-4 py-8 md:px-6 md:py-12">
-                    <div className="flex items-center justify-center h-64">
-                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500" />
+                    {/* Hero skeleton */}
+                    <Skeleton className="w-full h-64 mb-8 rounded-lg" />
+                    <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+                        {/* Main content skeleton */}
+                        <div className="lg:col-span-2 space-y-8">
+                            <Skeleton className="h-8 w-1/2 mb-4" />
+                            <Skeleton className="h-6 w-2/3 mb-4" />
+                            <Skeleton className="h-10 w-1/3 mb-4" />
+                            {/* Tabs skeleton */}
+                            <div className="space-y-4">
+                                {[...Array(3)].map((_, i) => (
+                                    <Skeleton key={i} className="h-24 w-full rounded-lg" />
+                                ))}
+                            </div>
+                        </div>
+                        {/* Sidebar skeleton */}
+                        <div className="space-y-6">
+                            <Skeleton className="h-24 w-full rounded-lg" />
+                            <Skeleton className="h-48 w-full rounded-lg" />
+                        </div>
                     </div>
                 </div>
             </Layout>
@@ -185,7 +285,7 @@ const ShopDetail = () => {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
                     <div className="absolute bottom-0 left-0 p-6 text-white">
-                        <h1 className="text-3xl font-bold md:text-4xl drop-shadow-md">{store.name}</h1>
+                        <h1 className="text-3xl font-bold md:text-4xl drop-shadow-md">{store?.user?.name}</h1>
                         <p className="mt-2 text-lg text-gray-100 drop-shadow-md">{store.tagline}</p>
                         <div className="mt-3 flex items-center">
                             <div className="flex items-center">
@@ -342,29 +442,35 @@ const ShopDetail = () => {
 
                                 {/* Reviews Tab */}
                                 <TabsContent value="reviews" className="mt-6">
-                                    {store.numReviews > 0 ? (
+                                    <div className="flex justify-end mb-4">
+                                        <Button variant="outline" onClick={() => setReviewDialogOpen(true)}>
+                                            Write a Review
+                                        </Button>
+                                    </div>
+                                    {store.reviews && store.reviews.length > 0 ? (
                                         <div className="space-y-6">
-                                            {/* In a real app, you would map through actual reviews here */}
-                                            <Card>
-                                                <CardContent className="p-6">
-                                                    <div className="flex items-start justify-between">
-                                                        <div>
-                                                            <div className="flex items-center space-x-1">
-                                                                {[...Array(5)].map((_, i) => (
-                                                                    <Star
-                                                                        key={i}
-                                                                        className={`h-4 w-4 ${i < Math.floor(store.rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
-                                                                            }`}
-                                                                    />
-                                                                ))}
+                                            {store.reviews.map((review) => (
+                                                <Card key={review._id}>
+                                                    <CardContent className="p-6">
+                                                        <div className="flex items-start justify-between">
+                                                            <div>
+                                                                <div className="flex items-center space-x-1">
+                                                                    {[...Array(5)].map((_, i) => (
+                                                                        <Star
+                                                                            key={i}
+                                                                            className={`h-4 w-4 ${i < review.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
+                                                                        />
+                                                                    ))}
+                                                                </div>
+                                                                <p className="mt-1 text-sm text-muted-foreground">
+                                                                    By <span className="font-medium">{review.user?.name || "Anonymous"}</span> on {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : "Unknown date"}
+                                                                </p>
                                                             </div>
-                                                            <p className="mt-4 text-muted-foreground">
-                                                                This store has an average rating of {averageRating} from {store.numReviews} reviews.
-                                                            </p>
                                                         </div>
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
+                                                        <p className="mt-4 text-sm text-muted-foreground">{review.comment}</p>
+                                                    </CardContent>
+                                                </Card>
+                                            ))}
                                         </div>
                                     ) : (
                                         <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -375,6 +481,74 @@ const ShopDetail = () => {
                                             </p>
                                         </div>
                                     )}
+                                    <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
+                                        <DialogContent className="sm:max-w-[500px]">
+                                            <DialogHeader>
+                                                <DialogTitle>Write a Review</DialogTitle>
+                                            </DialogHeader>
+                                            <form onSubmit={handleSubmitReview} className="space-y-4">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="name">Your Name *</Label>
+                                                    <Input
+                                                        id="name"
+                                                        name="name"
+                                                        value={reviewFormData.name}
+                                                        onChange={handleReviewInputChange}
+                                                        placeholder="John Doe"
+                                                        required
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="email">Email Address *</Label>
+                                                    <Input
+                                                        id="email"
+                                                        name="email"
+                                                        type="email"
+                                                        value={reviewFormData.email}
+                                                        onChange={handleReviewInputChange}
+                                                        placeholder="john.doe@example.com"
+                                                        required
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label>Rating *</Label>
+                                                    <div className="flex items-center space-x-1">
+                                                        {[1, 2, 3, 4, 5].map((rating) => (
+                                                            <button
+                                                                key={rating}
+                                                                type="button"
+                                                                onClick={() => handleRatingChange(rating)}
+                                                                className="focus:outline-none"
+                                                                aria-label={`Rate ${rating} out of 5`}
+                                                            >
+                                                                <Star
+                                                                    className={`h-6 w-6 ${rating <= reviewFormData.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
+                                                                />
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="comment">Your Review *</Label>
+                                                    <Textarea
+                                                        id="comment"
+                                                        name="comment"
+                                                        value={reviewFormData.comment}
+                                                        onChange={handleReviewInputChange}
+                                                        placeholder="What did you like or dislike?"
+                                                        rows={5}
+                                                        required
+                                                    />
+                                                </div>
+                                                <DialogFooter>
+                                                    <Button type="button" variant="outline" onClick={() => setReviewDialogOpen(false)}>
+                                                        Cancel
+                                                    </Button>
+                                                    <Button type="submit">Submit Review</Button>
+                                                </DialogFooter>
+                                            </form>
+                                        </DialogContent>
+                                    </Dialog>
                                 </TabsContent>
                             </Tabs>
                         </div>

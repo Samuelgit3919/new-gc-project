@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import Layout from "../../Layout";
 import { toast } from "sonner";
+import { Skeleton } from "../../components/ui/skeleton";
 
 const ShopLists = () => {
     const [bookStores, setBookStores] = useState([]);
@@ -141,8 +142,21 @@ const ShopLists = () => {
     if (loading) {
         return (
             <Layout className="w-full mx-auto py-8 bg-gray-50">
-                <div className="flex items-center justify-center h-64">
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500" />
+                <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto">
+                    {/* Skeleton for filter sidebar */}
+                    <div className="md:w-1/4 w-full p-6 bg-white h-64 overflow-y-auto rounded-lg shadow-md">
+                        <Skeleton className="h-8 w-1/2 mb-4" />
+                        {[...Array(2)].map((_, i) => (
+                            <Skeleton key={i} className="h-12 w-full mb-4" />
+                        ))}
+                    </div>
+                    {/* Skeleton for shop list */}
+                    <div className="md:w-3/4 w-full p-6 bg-white rounded-lg shadow-md">
+                        <Skeleton className="h-8 w-1/3 mb-6" />
+                        {[...Array(4)].map((_, i) => (
+                            <Skeleton key={i} className="h-20 w-full mb-4 rounded-lg" />
+                        ))}
+                    </div>
                 </div>
             </Layout>
         );
