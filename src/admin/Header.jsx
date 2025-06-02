@@ -61,11 +61,11 @@ export default function Header({ title, searchQuery, setSearchQuery }) {
 
 
             <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="relative">
+                <Link to="/notification" variant="ghost" size="icon" className="relative">
                     <Bell className="h-5 w-5" />
                     <span className="sr-only">Notifications</span>
                     <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />
-                </Button>
+                </Link>
 
                 <Link
                     to="/bookStoreProfilePage"
