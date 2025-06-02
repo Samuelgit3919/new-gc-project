@@ -41,16 +41,20 @@ export default function Login() {
                 return;
             }
 
+            // Store token and user information in localStorage
             localStorage.setItem("token", data.token);
-
             localStorage.setItem("user", JSON.stringify(data.user));
-            localStorage.setItem("userId", data.user._id); // Corrected from data.userId
+            localStorage.setItem("userId", data.user._id);
+            localStorage.setItem("role", data.user.role);
 
-            const token = localStorage.getItem("token")
-            console.log(token)
+            // Determine navigation path based on role and first-time login
+            if (data.user.role === "seller") {
+                navigate("/page");
+            } else {
+                navigate("/");
+            }
 
             toast.success("Login successful!");
-            navigate("/");
         } catch (error) {
             console.error("Login error:", error);
             toast.error("An unexpected error occurred.");
@@ -58,6 +62,7 @@ export default function Login() {
             setIsLoading(false);
         }
     };
+
 
     return (
         <div className="flex h-screen flex-col items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100 p-4">

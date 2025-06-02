@@ -39,8 +39,10 @@ export default function Register() {
             const data = await response.json();
             console.log("Register response:", data);
 
-            // Check both HTTP status and msg field
             if (response.ok || data?.msg?.toLowerCase().includes("verify your email")) {
+                // Store the role in localStorage
+                localStorage.setItem("role", role);
+
                 toast.success(data.msg || "Account created successfully!");
                 navigate("/verify-email", { state: { email } });
             } else {
@@ -53,6 +55,7 @@ export default function Register() {
             setIsLoading(false);
         }
     };
+
 
 
 

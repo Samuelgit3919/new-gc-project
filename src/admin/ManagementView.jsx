@@ -290,7 +290,10 @@ export default function ManagementView({
             else status = "In Stock"
 
             const token = localStorage.getItem("token")
-            if (!token) return
+            if (!token) {
+                alert("You are not authenticated.");
+                return;
+            }
 
             let payload, headers, method, url
             let isEdit = Boolean(editingItem && editingItem._id)
@@ -341,14 +344,20 @@ export default function ManagementView({
                     headers,
                     body: payload,
                 })
-                if (!res.ok) throw new Error("Failed to save book")
+                const data = await res.json();
+                console.log('Book save response:', data);
+                if (!res.ok) {
+                    alert(data.message || "Failed to save book");
+                    return;
+                }
                 setIsDialogOpen(false)
-                fetchBooks()
-            } catch {
-                // handle error (optionally show error message)
+                await fetchBooks()
+            } catch (err) {
+                alert("Failed to save book. Please try again.");
+                console.error(err);
+                return;
             }
         }
-        setIsDialogOpen(false)
     }
 
     const handleViewOrder = (order) => {

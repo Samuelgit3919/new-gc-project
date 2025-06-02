@@ -26,6 +26,8 @@ import { DataContext } from './DataProvider/DataProvider'
 import AdminPanel from './systemAdmin/AdminPage'
 import ChapaCheckout from './ui/CheckOut/ChapaCheckout'
 import OrderDetails from './ui/Account/OrderDetails'
+import BookstoreProfilePage from './admin/nextPage/BookstoreProfilePage'
+import HomePage from './components/HomePage/HomePage'
 
 
 
@@ -65,7 +67,7 @@ const App = () => {
   return (
     <Router>
       <Routes>
-        <Route index element={<HomeLayout />} />
+        <Route index element={<HomePage />} />
         <Route path='/login' element={<Login />} />
         <Route path='/register' element={<Register />} />
         <Route path='/forgotPassword' element={<ForgotPassword />} />
@@ -75,11 +77,13 @@ const App = () => {
           <Route path='/account' element={<Account />} />
           <Route path='/cart' element={<Cart />} />
 
-          {/*  */}
+
           {/* user profile page */}
           <Route path='/page' element={<Page />} />
           {/* admin page */}
           <Route path='/adminPanel' element={<AdminPanel />} />
+          <Route path='/bookStoreProfilePage' element={<BookstoreProfilePage />} />
+
         </Route>
 
 

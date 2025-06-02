@@ -1,16 +1,28 @@
-
-
-import { LayoutDashboard, BookOpen, ShoppingCart, Users, Settings, LogOut } from "lucide-react"
-import { Button } from "../components/ui/button"
+import { useNavigate } from "react-router-dom";
+import { LayoutDashboard, BookOpen, ShoppingCart, Users, Settings, LogOut } from "lucide-react";
+import { Button } from "../components/ui/button";
 
 export default function Sidebar({ activeView, setActiveView }) {
+    const navigate = useNavigate();
+
     const navItems = [
         { icon: LayoutDashboard, label: "Dashboard", value: "dashboard" },
         { icon: BookOpen, label: "Books", value: "books" },
         { icon: ShoppingCart, label: "Orders", value: "orders" },
         // { icon: Users, label: "Users", value: "users" },
         { icon: Settings, label: "Settings", value: "settings" },
-    ]
+    ];
+
+    const handleLogout = () => {
+        // Clear user-related data from localStorage
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        localStorage.removeItem("userId");
+        localStorage.removeItem("role"); // If you store role separately
+
+        // Redirect to login page
+        navigate("/login");
+    };
 
     return (
         <aside className="hidden md:flex h-screen w-64 flex-col bg-white border-r dark:bg-gray-800 dark:border-gray-700">
@@ -36,11 +48,15 @@ export default function Sidebar({ activeView, setActiveView }) {
             </nav>
 
             <div className="border-t p-4 dark:border-gray-700">
-                <Button variant="ghost" className="w-full justify-start text-red-500">
+                <Button
+                    variant="ghost"
+                    className="w-full justify-start text-red-500"
+                    onClick={handleLogout}
+                >
                     <LogOut className="mr-2 h-5 w-5" />
                     Log out
                 </Button>
             </div>
         </aside>
-    )
+    );
 }
