@@ -685,23 +685,23 @@ export default function ManagementView({
                                             <TableCell className="font-medium">{item.id}</TableCell>
                                             <TableCell>
                                                 <div>
-                                                    <p>{item.user?.name || item.user?.first_name || "N/A"}</p>
-                                                    <p className="text-sm text-gray-500">{item.user?.email || item.email || "N/A"}</p>
+                                                    <p>{item.customer}</p>
+                                                    <p className="text-sm text-gray-500">{item.email}</p>
                                                 </div>
                                             </TableCell>
                                             <TableCell>{item.date}</TableCell>
                                             <TableCell>
-                                                <ul>
-                                                    {(item.cart?.items || item.items || []).map((orderItem, idx) => {
-                                                        const book = orderItem.book || orderItem.product || {};
-                                                        const title = book.title || book.name || String(book) || "Book";
+                                                {Array.isArray(item.items)
+                                                    ? item.items.map((orderItem, idx) => {
+                                                        // Try to show book title and quantity
+                                                        let bookTitle = orderItem.book?.title || orderItem.book?.name || orderItem.book || "Book";
                                                         return (
-                                                            <li key={orderItem._id || idx}>
-                                                                {title} (x{orderItem.quantity || orderItem.amount || 1})
-                                                            </li>
+                                                            <span key={orderItem._id || idx}>
+                                                                {bookTitle} (x{orderItem.quantity}){idx < item.items.length - 1 ? ", " : ""}
+                                                            </span>
                                                         );
-                                                    })}
-                                                </ul>
+                                                    })
+                                                    : String(item.items)}
                                             </TableCell>
                                             <TableCell className="text-right">${item.total}</TableCell>
                                             <TableCell>
@@ -969,38 +969,35 @@ export default function ManagementView({
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-gray-500">Customer</p>
-                                    <p>{selectedOrder.user?.name || selectedOrder.user?.first_name || "N/A"}</p>
-                                    <p className="text-sm text-gray-500">{selectedOrder.user?.email || selectedOrder.email || "N/A"}</p>
+                                    <p>{selectedOrder.transactionDetails.first_name}</p>
+                                    <p className="text-sm text-gray-500">{selectedOrder.email}</p>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <p className="text-sm font-medium text-gray-500">Items</p>
-                                        <ul>
-                                            {(selectedOrder.cart?.items || selectedOrder.items || []).map((orderItem, idx) => {
-                                                const book = orderItem.book || orderItem.product || {};
-                                                const title = book.title || book.name || String(book) || "Book";
-                                                return (
-                                                    <li key={orderItem._id || idx}>
-                                                        {title} (x{orderItem.quantity || orderItem.amount || 1})
-                                                    </li>
-                                                );
-                                            })}
-                                        </ul>
+                                        <p>
+                                            {Array.isArray(selectedOrder.items)
+                                                ? selectedOrder.items.map((orderItem, idx) => {
+                                                    // Try to show book title and quantity
+                                                    let bookTitle = orderItem.book?.title || orderItem.book?.name || orderItem.book || "Book";
+                                                    return (
+                                                        <span key={orderItem._id || idx}>
+                                                            {bookTitle} (x{orderItem.quantity}){idx < selectedOrder.items.length - 1 ? ", " : ""}
+                                                        </span>
+                                                    );
+                                                })
+                                                : String(selectedOrder.items)}
+                                        </p>
                                     </div>
                                     <div>
-                                        <p className="text-sm font-medium text-gray-500">Pricing</p>
-                                        <ul className="text-sm">
-                                            <li>Subtotal: ${selectedOrder.pricing?.subtotal?.toFixed(2) ?? selectedOrder.total?.toFixed(2) ?? "N/A"}</li>
-                                            <li>Shipping: ${selectedOrder.pricing?.shipping?.toFixed(2) ?? "N/A"}</li>
-                                            <li>Tax: ${selectedOrder.pricing?.tax?.toFixed(2) ?? "N/A"}</li>
-                                            <li>Total: ${selectedOrder.pricing?.subtotal?.toFixed(2) ?? selectedOrder.total?.toFixed(2) ?? "N/A"}</li>
-                                        </ul>
+                                        <p className="text-sm font-medium text-gray-500">Total</p>
+                                        <p>${selectedOrder.total.toFixed(2)}</p>
                                     </div>
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-gray-500">Status</p>
                                     <Select
-                                        defaultValue={selectedOrder.paymentStatus}
+                                        defaultValue={selectedOrder.status}
                                         onValueChange={(value) => handleUpdateOrderStatus(selectedOrder.id, value)}
                                     >
                                         <SelectTrigger className="w-full">
@@ -1014,15 +1011,6 @@ export default function ManagementView({
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                {selectedOrder.shippingLocation && (
-                                    <div>
-                                        <p className="text-sm font-medium text-gray-500">Shipping Address</p>
-                                        <p>
-                                            {selectedOrder.shippingLocation.addressLine1 || ""}<br />
-                                            {selectedOrder.shippingLocation.city || ""}, {selectedOrder.shippingLocation.state || ""} {selectedOrder.shippingLocation.zip || ""}
-                                        </p>
-                                    </div>
-                                )}
                             </div>
                         </DialogContent>
                     </Dialog>

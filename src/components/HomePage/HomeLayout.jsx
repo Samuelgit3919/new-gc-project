@@ -1,4 +1,4 @@
-"use client";
+
 
 import { FaArrowRight } from "react-icons/fa";
 import { HiOutlineCollection } from "react-icons/hi";
