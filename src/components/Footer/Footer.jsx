@@ -18,8 +18,7 @@ const Footer = () => {
                         <h1 className="text-2xl font-bold text-gray-500">BookCompass</h1>
                     </div>
                     <p className="text-gray-400">
-                        Lorem ipsum dolor sit amet consectetur adipisicing elit. Quas fuga
-                        corporis atque culpa exercitationem amet!
+                       Transforms the Ethiopian book market by offering an intuitive web-based platform that makes finding, comparing, and buying your favorite books easier than ever.
                     </p>
                     <div>
                         <h3 className="text-lg font-semibold mb-4">Follow Us</h3>
@@ -72,7 +71,7 @@ const Footer = () => {
                         </li>
                         <li>
                             <a
-                                href="#"
+                                href="/contactPage"
                                 className="text-gray-400 hover:text-gray-500 transition-colors duration-300"
                             >
                                 Contact us
@@ -80,7 +79,7 @@ const Footer = () => {
                         </li>
                         <li>
                             <a
-                                href="#"
+                                href="/textbooks"
                                 className="text-gray-400 hover:text-gray-500 transition-colors duration-300"
                             >
                                 Products
@@ -88,7 +87,7 @@ const Footer = () => {
                         </li>
                         <li>
                             <a
-                                href="#"
+                                href="/login"
                                 className="text-gray-400 hover:text-gray-500 transition-colors duration-300"
                             >
                                 Login
@@ -96,7 +95,7 @@ const Footer = () => {
                         </li>
                         <li>
                             <a
-                                href="#"
+                                href="/register"
                                 className="text-gray-400 hover:text-gray-500 transition-colors duration-300"
                             >
                                 Sign Up
@@ -111,7 +110,7 @@ const Footer = () => {
                     <ul className="space-y-3">
                         <li>
                             <a
-                                href="#"
+                                href="/account"
                                 className="text-gray-400 hover:text-gray-500 transition-colors duration-300"
                             >
                                 My Account
@@ -119,23 +118,18 @@ const Footer = () => {
                         </li>
                         <li>
                             <a
-                                href="#"
+                                href="/cart"
                                 className="text-gray-400 hover:text-gray-500 transition-colors duration-300"
                             >
                                 Orders
                             </a>
                         </li>
                         <li>
-                            <a
-                                href="#"
-                                className="text-gray-400 hover:text-gray-500 transition-colors duration-300"
-                            >
-                                Tracking List
-                            </a>
+                            
                         </li>
                         <li>
                             <a
-                                href="#"
+                                href="/termsOfUse"
                                 className="text-gray-400 hover:text-gray-500 transition-colors duration-300"
                             >
                                 Terms
@@ -151,7 +145,7 @@ const Footer = () => {
                         </li>
                         <li>
                             <a
-                                href="#"
+                                href="/FaqPage"
                                 className="text-gray-400 hover:text-gray-500 transition-colors duration-300"
                             >
                                 FAQ
@@ -164,9 +158,7 @@ const Footer = () => {
                 <div className="flex flex-col gap-6">
                     <h3 className="text-lg font-semibold">Don't miss the newest books</h3>
                     <p className="text-gray-400">
-                        Lorem ipsum dolor sit amet, consectetur adipisicing elit. Aliquam
-                        amet inventore ipsam quo harum, dignissimos unde laboriosam non at
-                        quidem!
+                        Stay updated with the latest releases and never miss a new book! Explore fresh titles handpicked just for you.
                     </p>
                     <form className="flex flex-col sm:flex-row gap-2">
                         <input
