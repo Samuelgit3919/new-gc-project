@@ -35,6 +35,7 @@ export default function Login() {
             });
 
             const data = await response.json();
+            console.log(data);
 
             if (!response.ok) {
                 toast.error(data.message || "Login failed. Please try again.");
@@ -48,7 +49,9 @@ export default function Login() {
             localStorage.setItem("role", data.user.role);
 
             // Determine navigation path based on role and first-time login
-            if (data.user.role === "seller") {
+            if (data.user.role === "admin") {
+                navigate("/adminPanel");
+            } else if (data.user.role === "seller") {
                 navigate("/page");
             } else {
                 navigate("/");

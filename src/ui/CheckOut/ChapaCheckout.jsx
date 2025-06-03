@@ -1,9 +1,9 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import Layout from "../../Layout";
 import { DataContext } from "../../DataProvider/DataProvider.jsx";
 import { ClipLoader } from "react-spinners";
 // import axios from "axios";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 const Payment = () => {
     const [formData, setFormData] = useState({
@@ -12,6 +12,9 @@ const Payment = () => {
         email: "",
         phone_number: "",
     });
+
+    const {id} = useParams()
+    const [txRef, setTxRef] = useState("");
     const [error, setError] = useState(null);
     const [process, setProcess] = useState(false);
 
@@ -21,45 +24,25 @@ const Payment = () => {
     const totalItem = basket?.reduce((amount, item) => item.amount + amount, 0);
     const total = basket?.reduce((amount, item) => item.price * item.amount + amount, 0);
 
-    // const handleChange = (e) => {
-    //     setFormData({ ...formData, [e.target.name]: e.target.value });
-    // };
-
-    // const handlePayment = async (e) => {
-    //     e.preventDefault();
-    //     setError(null);
-    //     setProcess(true);
-
-    //     const tx_ref = `tx-${Date.now()}`;
-
-    //     const data = {
-    //         ...formData,
-    //         amount: total,
-    //         currency: "ETB",
-    //         tx_ref,
-    //         callback_url: "https://bookcompass.onrender.com/api/order/payment-callback",
-    //         return_url: "https://bookcompass.onrender.com/api/order/payment-success",
-    //         customization: {
-    //             title: "Book Payment",
-    //             description: "Order payment via Chapa",
-    //         },
-    //     };
-
-    //     try {
-    //         const response = await axios.post("https://api.chapa.co/v1/transaction/initialize", data, {
-    //             headers: {
-    //                 Authorization: `Bearer YOUR_CHAPA_SECRET_KEY`,
-    //             },
-    //         });
-
-    //         const checkoutUrl = response.data.data.checkout_url;
-    //         window.location.href = checkoutUrl;
-    //     } catch (err) {
-    //         console.error(err);
-    //         setError("Payment initialization failed. Please try again.");
-    //         setProcess(false);
-    //     }
-    // };
+    useEffect(() => {
+        const fetchOrder = async () => {
+            try {
+                const token = localStorage.getItem("token");
+                const response = await fetch(`https://bookcompass.onrender.com/api/order/getOrder/${id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                if (!response.ok) throw new Error("Failed to fetch order");
+                const data = await response.json();
+                console.log(data)
+                setTxRef(data.data?.tx_ref || "");
+            } catch (err) {
+                setError(err.message);
+            }
+        };
+        fetchOrder();
+    }, [id]);
 
     return (
         <Layout>
@@ -130,8 +113,8 @@ const Payment = () => {
                         </form>
                     </div>
                 </div> */}
-                <button>
-                    <Link target="_blank" to={`https://checkout.chapa.co/checkout/payment/gUeUyepwAQXLsasMyPjhN4mqA5GBiRRzGoOYie4xidEXR`} className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md">
+                <button disabled={!txRef}>
+                    <Link target="_blank" to={`https://checkout.chapa.co/checkout/payment/${id}`} className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md">
                         pay with chapa
                     </Link>
                 </button>

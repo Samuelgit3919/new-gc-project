@@ -64,8 +64,8 @@ const ShopLists = () => {
             // Map API response to expected structure
             const formattedBookStores = bookStoreArray.map((store) => ({
                 id: store._id || `store-${Math.random()}`, // Use _id from API
-                name: store.seller?.name || "Unknown Bookstore",
-                owner: store.seller?.name || "Unknown Owner",
+                name: store?.name || "Unknown Bookstore",
+                owner: store?.name || "Unknown Owner",
                 location: store.location?.address || "Unknown Location", // Google Maps URL
                 rating: store.averageRating || 0,
                 website: store.website || "", // Not in API, kept for compatibility

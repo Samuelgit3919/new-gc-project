@@ -35,21 +35,32 @@ const Carousel = () => {
 
     const slides = [
         {
-            image: 'https://i.pinimg.com/736x/f5/4f/08/f54f0874809bfb306cefe230135cb797.jpg',
-            title: 'Be yourself & Never Surrender',
-            subtitle: 'Inspirational Journey',
+            image: 'https://i.pinimg.com/736x/53/36/5c/53365c17719ad652eca53ac31b9bdf0f.jpg',
+            title: 'Chasing Sunsets',
+            subtitle: 'A Tale of Hope and Light',
         },
         {
-            image: 'https://i.pinimg.com/736x/f5/4f/08/f54f0874809bfb306cefe230135cb797.jpg',
-            title: 'Theory: Is Alien Real',
-            subtitle: 'Explore the Unknown',
+            image: 'https://i.pinimg.com/736x/5b/16/c2/5b16c2fb03952a889024a330f576822b.jpg',
+            title: 'Wired Reality',
+            subtitle: 'Inside the Mind of AI',
         },
         {
-            image: 'https://i.pinimg.com/736x/f5/4f/08/f54f0874809bfb306cefe230135cb797.jpg',
-            title: 'The Unseen',
-            subtitle: 'Discover Hidden Mysteries',
+            image: 'https://i.pinimg.com/736x/0a/ad/b5/0aadb5edc0c4fbf7a1306b056ec55ad9.jpg',
+            title: 'Lost in the Highlands',
+            subtitle: 'Nature’s Untamed Beauty',
+        },
+        {
+            image: 'https://i.pinimg.com/736x/73/0f/f6/730ff64d510f88686323427f35ece039.jpg',
+            title: 'Beyond the Stars',
+            subtitle: 'Journey Through the Cosmos',
+        },
+        {
+            image: 'https://i.pinimg.com/736x/34/b2/13/34b213d35c02a5395a19945b7cfa5cea.jpg',
+            title: 'Urban Rhythms',
+            subtitle: 'Life in the Fast Lane',
         },
     ];
+    
 
     return (
         <div className="w-full lg:w-4/5 mx-auto py-10">

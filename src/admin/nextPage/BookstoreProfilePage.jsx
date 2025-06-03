@@ -7,6 +7,7 @@ import { Textarea } from "../../components/ui/textarea";
 import { Checkbox } from "../../components/ui/checkbox";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { Link } from "react-router-dom";
 import {
     Calendar,
     Clock,
@@ -21,6 +22,7 @@ import {
     Plus,
     Trash2,
     ChevronDown,
+    ArrowLeft,
 } from "lucide-react";
 
 export default function BookstoreProfilePage() {
@@ -303,27 +305,46 @@ export default function BookstoreProfilePage() {
         }
     };
 
-    // Handle form submission
+    // Add this helper function at the top level
+    const validateLocation = (location) => {
+        // Check if it's a Google Maps URL
+        if (location.includes('google.com/maps') || location.includes('goo.gl/maps')) {
+            return true;
+        }
+        
+        // Check if it's coordinates (latitude,longitude)
+        const coordsRegex = /^-?\d+\.?\d*,\s*-?\d+\.?\d*$/;
+        if (coordsRegex.test(location)) {
+            return true;
+        }
+        
+        // Check if it's a text address
+        if (location.length > 0) {
+            return true;
+        }
+        
+        return false;
+    };
+
+    // Add the to12Hour function before handleSubmit
+    const to12Hour = (timeStr) => {
+        if (!timeStr) return '';
+        const [h, m] = timeStr.split(':');
+        let hour = parseInt(h, 10);
+        const min = m;
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        hour = hour % 12;
+        if (hour === 0) hour = 12;
+        return `${hour}:${min} ${ampm}`;
+    };
+
+    // Update the handleSubmit function
     const handleSubmit = async (e) => {
         e.preventDefault();
         setHasAttemptedSubmit(true);
-
-        // Validate the form
-        if (!validateForm()) {
-            if (!formData.phone || !formData.phone.trim()) {
-                toast.error("Phone number is required");
-            } else if (!validatePhone(formData.phone.trim())) {
-                toast.error("Please enter a valid phone number (e.g., +1234567890 or 123-456-7890)");
-            } else {
-                toast.error("Please fix the errors in the form before submitting");
-            }
-            return;
-        }
-
         setIsSubmitting(true);
 
         try {
-            // Verify token
             const token = localStorage.getItem("token");
             if (!token) {
                 toast.error("Authentication token is missing. Please log in.");
@@ -331,14 +352,44 @@ export default function BookstoreProfilePage() {
                 return;
             }
 
-            // Prepare FormData with server-side field names
+            // Create FormData
             const formDataToSend = new FormData();
 
             // Required fields
             formDataToSend.append('name', formData.name.trim());
             formDataToSend.append('contactPhone', formData.phone.trim());
             formDataToSend.append('address', formData.address.trim());
-            formDataToSend.append('location', formData.mapsLink.trim());
+
+            // Handle location/maps link
+            if (formData.mapsLink) {
+                if (!validateLocation(formData.mapsLink)) {
+                    toast.error("Please provide a valid location format (Google Maps URL, coordinates, or address)");
+                    setIsSubmitting(false);
+                    return;
+                }
+                formDataToSend.append('location', formData.mapsLink.trim());
+            }
+
+            // Handle file uploads
+            if (formData.logo) {
+                const logoFile = formData.logo;
+                if (logoFile.size > 2 * 1024 * 1024) {
+                    toast.error("Logo must be under 2MB");
+                    setIsSubmitting(false);
+                    return;
+                }
+                formDataToSend.append('logo', logoFile);
+            }
+
+            if (formData.banner) {
+                const bannerFile = formData.banner;
+                if (bannerFile.size > 5 * 1024 * 1024) {
+                    toast.error("Banner must be under 5MB");
+                    setIsSubmitting(false);
+                    return;
+                }
+                formDataToSend.append('background', bannerFile);
+            }
 
             // Optional fields
             if (formData.tagline) formDataToSend.append('tagline', formData.tagline.trim());
@@ -349,17 +400,12 @@ export default function BookstoreProfilePage() {
             if (formData.instagram) formDataToSend.append('instagramUrl', formData.instagram.trim());
             if (formData.twitter) formDataToSend.append('twitterUrl', formData.twitter.trim());
 
-            // Services (comma-separated string)
+            // Services
             if (selectedServices.length > 0) {
                 formDataToSend.append('services', selectedServices.join(','));
             }
 
-            // Payment providers and phone numbers (if you have these fields in your UI, add them here)
-            // Example:
-            // if (paymentProviders.length > 0) formDataToSend.append('paymentProviders', paymentProviders.join(','));
-            // if (paymentPhoneNumbers.length > 0) formDataToSend.append('paymentPhoneNumbers', paymentPhoneNumbers.join(','));
-
-            // Operating hours: convert to "mondayHours", "tuesdayHours", ...
+            // Operating hours
             const dayMap = {
                 monday: 'mondayHours',
                 tuesday: 'tuesdayHours',
@@ -369,42 +415,18 @@ export default function BookstoreProfilePage() {
                 saturday: 'saturdayHours',
                 sunday: 'sundayHours',
             };
+
             Object.entries(operatingHours).forEach(([day, value]) => {
-                let hoursString = '';
-                if (value.closed) {
-                    hoursString = 'Closed';
-                } else {
-                    // Format: "9:00 AM - 5:00 PM"
-                    const open = value.open ? to12Hour(value.open) : '';
-                    const close = value.close ? to12Hour(value.close) : '';
-                    hoursString = open && close ? `${open} - ${close}` : '';
-                }
-                if (hoursString) {
+                try {
+                    let hoursString = value.closed ? 'Closed' : `${to12Hour(value.open)} - ${to12Hour(value.close)}`;
                     formDataToSend.append(dayMap[day], hoursString);
+                } catch (err) {
+                    console.error(`Error formatting hours for ${day}:`, err);
+                    formDataToSend.append(dayMap[day], 'Closed');
                 }
             });
 
-            // Logo and background
-            if (formData.logo) formDataToSend.append('logo', formData.logo);
-            if (formData.banner) formDataToSend.append('background', formData.banner);
-
-            // Helper: convert 24h time to 12h AM/PM
-            function to12Hour(timeStr) {
-                if (!timeStr) return '';
-                const [h, m] = timeStr.split(':');
-                let hour = parseInt(h, 10);
-                const min = m;
-                const ampm = hour >= 12 ? 'PM' : 'AM';
-                hour = hour % 12;
-                if (hour === 0) hour = 12;
-                return `${hour}:${min} ${ampm}`;
-            }
-
-            // Debug: log all FormData entries
-            for (let pair of formDataToSend.entries()) {
-                console.log(pair[0] + ': ' + pair[1]);
-            }
-
+            // Make the API call
             const response = await fetch("https://bookcompass.onrender.com/api/bookshop", {
                 method: "POST",
                 headers: {
@@ -413,23 +435,15 @@ export default function BookstoreProfilePage() {
                 body: formDataToSend,
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error("Server error response:", errorData);
+            const result = await response.json();
 
-                // Handle specific error messages from server
-                if (errorData.message) {
-                    throw new Error(errorData.message);
-                } else {
-                    throw new Error(`Request failed with status ${response.status}`);
-                }
+            if (!response.ok) {
+                throw new Error(result.message || "Failed to save bookstore profile");
             }
 
-            const result = await response.json();
             toast.success("Bookstore profile saved successfully!");
-            console.log("API Response:", result);
-
-            // Reset all form fields after successful save
+            
+            // Reset form after successful save
             setFormData({
                 name: "",
                 tagline: "",
@@ -445,32 +459,13 @@ export default function BookstoreProfilePage() {
                 logo: null,
                 banner: null,
             });
-            setEvents([{ id: "1", name: "", date: "", time: "", description: "" }]);
             setSelectedServices([]);
-            setOperatingHours({
-                monday: { open: "09:00", close: "18:00", closed: false },
-                tuesday: { open: "09:00", close: "18:00", closed: false },
-                wednesday: { open: "09:00", close: "18:00", closed: false },
-                thursday: { open: "09:00", close: "18:00", closed: false },
-                friday: { open: "09:00", close: "20:00", closed: false },
-                saturday: { open: "10:00", close: "20:00", closed: false },
-                sunday: { open: "12:00", close: "17:00", closed: false },
-            });
             setFormErrors({});
             setHasAttemptedSubmit(false);
+
         } catch (error) {
             console.error("Error submitting form:", error);
-
-            // Show appropriate error message
-            if (error.message.includes("401")) {
-                toast.error("Session expired. Please log in again.");
-                // Optionally redirect to login
-            } else if (error.message.includes("Phone number is required")) {
-                setFormErrors(prev => ({ ...prev, phone: error.message }));
-                toast.error(error.message);
-            } else {
-                toast.error(`Failed to save: ${error.message}`);
-            }
+            toast.error(error.message || "Failed to save bookstore profile");
         } finally {
             setIsSubmitting(false);
         }
@@ -498,7 +493,15 @@ export default function BookstoreProfilePage() {
                 theme="light"
             />
             <div className="mx-auto max-w-4xl space-y-6 gap-y-6 px-2 sm:px-4">
-                <div className="space-y-2 mb-8 mt-4">
+                <Link 
+                    to="/page"
+                    className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors mt-4"
+                >
+                    <ArrowLeft className="h-5 w-5" />
+                    <span>Back to Page</span>
+                </Link>
+
+                <div className="space-y-2 mb-8">
                     <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center">Bookstore Profile</h1>
                     <p className="text-center text-gray-600 text-base sm:text-lg">Complete your bookstore's profile information</p>
                 </div>
@@ -920,14 +923,17 @@ export default function BookstoreProfilePage() {
                         <CardContent className="space-y-6 bg-white">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 gap-y-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="logo">Bookstore Logo</Label>
-                                    <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${formErrors.logo ? "border-red-500" : "border-gray-300 hover:border-gray-400"
-                                        }`}>
+                                    <Label htmlFor="logo">Bookstore Logo (Max 2MB)</Label>
+                                    <div 
+                                        className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer
+                                            ${formErrors.logo ? "border-red-500" : "border-gray-300 hover:border-gray-400"}`}
+                                        onClick={() => document.getElementById('logo').click()}
+                                    >
                                         <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
                                         <p className="text-sm text-gray-600 mb-2">Click to upload logo</p>
                                         <p className="text-xs text-gray-500">PNG, JPG up to 2MB</p>
                                         {formData.logo && (
-                                            <p className="text-sm text-green-600 mt-2">
+                                            <p className="text-sm text-green-600 mt-2 break-all">
                                                 Selected: {formData.logo.name}
                                             </p>
                                         )}
@@ -944,14 +950,17 @@ export default function BookstoreProfilePage() {
                                     )}
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="banner">Banner Image</Label>
-                                    <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${formErrors.banner ? "border-red-500" : "border-gray-300 hover:border-gray-400"
-                                        }`}>
+                                    <Label htmlFor="banner">Banner Image (Max 5MB)</Label>
+                                    <div 
+                                        className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer
+                                            ${formErrors.banner ? "border-red-500" : "border-gray-300 hover:border-gray-400"}`}
+                                        onClick={() => document.getElementById('banner').click()}
+                                    >
                                         <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
                                         <p className="text-sm text-gray-600 mb-2">Click to upload banner</p>
                                         <p className="text-xs text-gray-500">PNG, JPG up to 5MB</p>
                                         {formData.banner && (
-                                            <p className="text-sm text-green-600 mt-2">
+                                            <p className="text-sm text-green-600 mt-2 break-all">
                                                 Selected: {formData.banner.name}
                                             </p>
                                         )}

@@ -29,6 +29,7 @@ import OrderDetails from './ui/Account/OrderDetails'
 import BookstoreProfilePage from './admin/nextPage/BookstoreProfilePage'
 import HomePage from './components/HomePage/HomePage'
 import NotificationViewer from './admin/NotificationViewer'
+import ChatBot from './ChatBot/ChatBot'
 // import Wishlist from './ui/Account/WishList'
 
 
@@ -68,6 +69,7 @@ const App = () => {
     , []);
   return (
     <Router>
+      <ChatBot />
       <Routes>
         <Route index element={<HomePage />} />
         <Route path='/login' element={<Login />} />

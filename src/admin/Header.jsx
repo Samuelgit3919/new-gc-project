@@ -1,6 +1,6 @@
 "use client"
 
-import { Bell, Search } from "lucide-react"
+import { Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -59,14 +59,7 @@ export default function Header({ title, searchQuery, setSearchQuery }) {
                 </div>
             </div>
 
-
             <div className="flex items-center gap-2">
-                <Link to="/notification" variant="ghost" size="icon" className="relative">
-                    <Bell className="h-5 w-5" />
-                    <span className="sr-only">Notifications</span>
-                    <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />
-                </Link>
-
                 <Link
                     to="/bookStoreProfilePage"
                     variant="outline"

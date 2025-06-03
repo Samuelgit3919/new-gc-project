@@ -13,7 +13,7 @@ const FlashSale = () => {
     const slides = [
         {
             image:
-                "https://i.pinimg.com/736x/f5/4f/08/f54f0874809bfb306cefe230135cb797.jpg",
+                "https://i.pinimg.com/736x/ca/48/b0/ca48b01819b4c2b0ac8f6cb5394695a3.jpg",
             title: "Be yourself & Never Surrender",
             subtitle: "Inspirational Journey",
             type: "Adventure",
@@ -26,7 +26,7 @@ const FlashSale = () => {
         },
         {
             image:
-                "https://i.pinimg.com/736x/f5/4f/08/f54f0874809bfb306cefe230135cb797.jpg",
+                "https://i.pinimg.com/736x/ca/48/b0/ca48b01819b4c2b0ac8f6cb5394695a3.jpg",
             title: "Theory: Is Alien Real",
             subtitle: "Explore the Unknown",
             type: "Fiction",
@@ -39,7 +39,7 @@ const FlashSale = () => {
         },
         {
             image:
-                "https://i.pinimg.com/736x/f5/4f/08/f54f0874809bfb306cefe230135cb797.jpg",
+                "https://i.pinimg.com/736x/25/3f/c3/253fc38dabcbba1cffd33ce92ee44dc1.jpg",
             title: "The Unseen",
             subtitle: "Discover Hidden Mysteries",
             type: "Thriller",

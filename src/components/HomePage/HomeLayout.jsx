@@ -7,10 +7,12 @@ import Corousel from "../carousel/Corousel";
 import Pages from "./HomePage";
 import Carousel from "../carousel/Corousel";
 import Layout from "../../Layout"
+// import ChatBot from "@/ChatBot/ChatBot";
 
 export default function HomeLayout() {
     return (
         <div className="bg-purple-50 py-12 ">
+            
             <div className="container md:mx-8 mx-auto px-6 lg:px-8 flex flex-col lg:flex-row items-center lg:space-x-8 space-y-12 lg:space-y-0">
                 {/* Text Section */}
                 <div className="w-full lg:w-2/5 text-center lg:text-left">

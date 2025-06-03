@@ -32,6 +32,8 @@ import {
 import { toast } from "react-hot-toast"
 import axios from "axios"
 import { Skeleton } from "../components/ui/skeleton"
+import { useNavigate } from "react-router-dom"
+import { Toaster } from "react-hot-toast"
 
 export default function ManagementView({
     activeView,
@@ -72,6 +74,8 @@ export default function ManagementView({
     const [loadingSettings, setLoadingSettings] = useState(false)
     const [loadingBooks, setLoadingBooks] = useState(false)
     const [loadingOrders, setLoadingOrders] = useState(false)
+
+    const navigate = useNavigate()
 
     // Fetch books from API
     const fetchBooks = async () => {
@@ -120,22 +124,36 @@ export default function ManagementView({
             const fetchBookshop = async () => {
                 try {
                     const token = localStorage.getItem("token")
-                    const shopId = localStorage.getItem("bookshopId")
-                    if (!token || !shopId) return
-                    const res = await axios.get(`https://bookcompass.onrender.com/api/bookshop/${shopId}`, {
+                    const userStr = localStorage.getItem("user")
+                    if (!token || !userStr) {
+                        toast.error("You are not authenticated")
+                        return
+                    }
+
+                    // Parse user data to get ID
+                    const user = JSON.parse(userStr)
+                    if (!user._id) {
+                        toast.error("User ID not found")
+                        return
+                    }
+
+                    const res = await axios.get(`https://bookcompass.onrender.com/api/bookshop/myShop`, {
                         headers: { Authorization: `Bearer ${token}` },
                     })
+
                     if (res.data && res.data.data) {
+                        const shopData = res.data.data
                         setSettingsFormData({
-                            storeName: res.data.data.name || "",
-                            email: res.data.data.email || "",
-                            phone: res.data.data.phone || "",
-                            currency: res.data.data.currency || "usd",
-                            address: res.data.data.address || "",
-                            notifications: res.data.data.notifications || { newOrder: true, lowStock: true },
+                            storeName: shopData.name || "",
+                            email: shopData.contact?.email || "",
+                            phone: shopData.contact?.phoneNumber || "",
+                            currency: shopData.currency || "usd",
+                            address: shopData.location?.address || "",
+                            notifications: shopData.notifications || { newOrder: true, lowStock: true },
                         })
                     }
-                } catch {
+                } catch (err) {
+                    console.error("Error fetching bookshop:", err)
                     toast.error("Failed to fetch bookshop details")
                 } finally {
                     setLoadingSettings(false)
@@ -357,8 +375,8 @@ export default function ManagementView({
                 payload.append("imgUrl", formData.imgUrl)
                 payload.append("BookTypeOption", formData.BookTypeOption)
                 payload.append("status", status)
-                payload.append("file", formData.file),
-                    headers = { Authorization: `Bearer ${token}` }
+                payload.append("file", formData.file)
+                headers = { Authorization: `Bearer ${token}` }
             } else {
                 // No file, send JSON
                 payload = JSON.stringify({
@@ -378,6 +396,7 @@ export default function ManagementView({
                     Authorization: `Bearer ${token}`,
                 }
             }
+
             if (isEdit) {
                 method = "PUT"
                 url = `${API_BASE_URL}/updateBook/${editingItem._id}`
@@ -385,33 +404,44 @@ export default function ManagementView({
                 method = "POST"
                 url = `${API_BASE_URL}/createBook`
             }
+
             try {
                 const res = await fetch(url, {
                     method,
                     headers,
                     body: payload,
                 })
-                const data = await res.json();
-                console.log(data)
-                console.log('Book save response:', data);
+                const data = await res.json()
+
                 if (!res.ok) {
-                    // Check for duplicate ISBN error
-                    if (data.error && data.error.includes("duplicate key error") && data.error.includes("isbn")) {
-                        toast.error("A book with this ISBN already exists.");
-                    } else {
-                        toast.error(data.message || "Failed to save book");
+                    if (data.error === "You need to create a bookshop before adding books. Please create a bookshop first.") {
+                        toast.error(data.error, {
+                            duration: 5000,
+                            position: "top-center",
+                            style: {
+                                background: "#FEE2E2",
+                                color: "#991B1B",
+                                border: "1px solid #F87171",
+                            },
+                            action: {
+                                label: "Create Bookshop",
+                                onClick: () => navigate("/bookStoreProfilePage")
+                            }
+                        });
+                        setIsDialogOpen(false);
+                        return;
                     }
-                    setIsDialogOpen(false);
-                    return;
+                    throw new Error(data.message || "Failed to save book")
                 }
+
                 setIsDialogOpen(false)
-                toast.success("Book saved successfully!");
+                toast.success(`Book ${isEdit ? "updated" : "added"} successfully!`)
                 await fetchBooks()
             } catch (err) {
-                toast.error("Failed to save book. Please try again.");
-                setIsDialogOpen(false);
-                console.error(err);
-                return;
+                toast.error(err.message || "Failed to save book", {
+                    position: "top-center",
+                    duration: 4000
+                })
             }
         }
     }
@@ -445,29 +475,63 @@ export default function ManagementView({
     const handleSaveSettings = async () => {
         try {
             const token = localStorage.getItem("token");
-            const shopId = localStorage.getItem("bookshopId");
-            if (!token || !shopId) {
-                toast.error("Missing authentication or shop ID");
+            if (!token) {
+                toast.error("You are not authenticated");
                 return;
             }
-            // Only update the listed fields
-            const updateFields = {
+
+            // Get the current bookshop data first
+            const shopResponse = await axios.get(
+                `https://bookcompass.onrender.com/api/bookshop/myShop`,
+                {
+                    headers: { Authorization: `Bearer ${token}` }
+                }
+            );
+
+            if (!shopResponse.data?.data?._id) {
+                toast.error("Could not find your bookshop");
+                return;
+            }
+
+            const bookshopId = shopResponse.data.data._id;
+
+            // Format the update data according to the API structure
+            const updateData = {
                 name: settingsFormData.storeName,
-                email: settingsFormData.email,
-                phone: settingsFormData.phone,
+                contact: {
+                    email: settingsFormData.email,
+                    phoneNumber: settingsFormData.phone
+                },
                 currency: settingsFormData.currency,
-                address: settingsFormData.address,
-                notifications: settingsFormData.notifications,
+                location: {
+                    address: settingsFormData.address
+                },
+                notifications: settingsFormData.notifications
             };
-            await axios.patch(`https://bookcompass.onrender.com/api/bookshop/update-fields`, updateFields, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setSettings(settingsFormData);
-            toast.success("Settings saved successfully!");
+
+            // Make the API call to update the bookshop
+            const response = await axios.put(
+                `https://bookcompass.onrender.com/api/bookshop/${bookshopId}`,
+                updateData,
+                {
+                    headers: { 
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+
+            if (response.data && response.data.success) {
+                setSettings(settingsFormData);
+                toast.success("Settings saved successfully!");
+            } else {
+                throw new Error(response.data.message || "Failed to update settings");
+            }
         } catch (err) {
-            toast.error("Failed to update bookshop settings");
+            console.error("Error updating settings:", err);
+            toast.error(err.response?.data?.message || err.message || "Failed to update bookshop settings");
         }
-    }
+    };
 
     // Get filter options
     const getFilterOptions = () => {
@@ -491,6 +555,19 @@ export default function ManagementView({
     }
 
     const filterOptions = getFilterOptions()
+
+    const getUserId = () => {
+        const userStr = localStorage.getItem("user");
+        if (!userStr) return null;
+        
+        try {
+            const user = JSON.parse(userStr);
+            return user._id;
+        } catch (e) {
+            console.error("Error parsing user data:", e);
+            return null;
+        }
+    };
 
     // Render settings view
     if (activeView === "settings") {
@@ -628,7 +705,8 @@ export default function ManagementView({
 
     // Render table view for books, orders, users
     return (
-        <div >
+        <div>
+            <Toaster position="top-center" />
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
                     <h1 className="text-2xl font-bold">

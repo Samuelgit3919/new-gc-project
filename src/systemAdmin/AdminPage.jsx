@@ -373,14 +373,16 @@ function AppSidebar({ activeSection, setActiveSection, isCollapsed, isMobile, on
                                 <DropdownMenuTrigger asChild>
                                     <button className="flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground">
                                         <Avatar className="h-8 w-8 rounded-lg">
-                                            <AvatarImage src="/placeholder.svg?height=32&width=32" alt={user?.name || "Admin User"} />
-                                            <AvatarFallback className="rounded-lg bg-teal-600 text-white">{user?.name ? user.name.split(" ").map(n => n[0]).join("") : "AU"}</AvatarFallback>
+                                            <AvatarImage src={user?.profileImage || "/placeholder.svg?height=32&width=32"} alt={user?.name || "User"} />
+                                            <AvatarFallback className="rounded-lg bg-teal-600 text-white">
+                                                {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+                                            </AvatarFallback>
                                         </Avatar>
                                         {!isCollapsed && (
                                             <>
                                                 <div className="grid flex-1 text-left text-sm leading-tight">
-                                                    <span className="truncate font-semibold">{user?.name || "Admin User"}</span>
-                                                    <span className="truncate text-xs text-sidebar-foreground/70">{user?.email || "admin@bookstore.com"}</span>
+                                                    <span className="truncate font-semibold">{user?.name || "User"}</span>
+                                                    <span className="truncate text-xs text-sidebar-foreground/70">{user?.email || "user@example.com"}</span>
                                                 </div>
                                                 <ChevronDown className="ml-auto size-4" />
                                             </>

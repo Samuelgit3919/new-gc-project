@@ -63,22 +63,24 @@ const ShopDetail = () => {
                     throw new Error("Store data not found in response");
                 }
 
+                console.log(data.data)
+
                 // Format the store data according to the API response structure
                 const formattedStore = {
                     id: data.data._id,
                     name: data.data.name || "Unknown Bookstore",
-                    tagline: data.data.description || "Your literary destination",
-                    description: data.data.description || "A wonderful bookstore with a great collection",
-                    image: data.data.images?.background || "https://images.unsplash.com/photo-1589998059171-988d887df646",
-                    logo: data.data.images?.logo || "https://images.unsplash.com/photo-1575470888645-5c5e277247b0",
+                    tagline: "Your Literary Haven",
+                    description: "A welcoming bookstore offering a curated collection of books",
+                    image: data.data.images?.background || "",
+                    logo: data.data.images?.logo || "",
                     address: data.data.location?.address || "Address not specified",
                     coordinates: data.data.location?.coordinates || [],
                     phone: data.data.contact?.phoneNumber || "Not available",
                     email: data.data.contact?.email || "Not available",
-                    website: data.data.website || "",
+                    website: "",
                     rating: data.data.averageRating || 0,
                     numReviews: data.data.numReviews || 0,
-                    distance: "Nearby", // You might calculate this based on user location
+                    distance: "Nearby",
                     features: data.data.services || [],
                     hours: data.data.operatingHours ? [
                         { day: "Monday", hours: data.data.operatingHours.monday || "Closed" },
@@ -93,17 +95,18 @@ const ShopDetail = () => {
                         id: book._id,
                         title: book.title,
                         author: book.author,
-                        price: book.price,
-                        cover: book.coverImage || "https://images.unsplash.com/photo-1544947950-fa07a98d237f",
+                        price: book.price || 0,
+                        cover: book.imageUrl || "",
                         inStock: book.stock > 0,
                         description: book.description,
-                        genre: book.genre,
-                        pages: book.pages,
-                        publisher: book.publisher,
-                        isbn: book.isbn,
+                        genre: book.genre || "Uncategorized",
+                        pages: book.pages || 0,
+                        publisher: book.publisher || "Unknown Publisher",
+                        isbn: book.isbn || "N/A",
                         rating: book.averageRating || 0,
-                        publishDate: book.publishDate,
-                        language: book.language
+                        publishDate: book.publishDate || "Unknown",
+                        language: book.language || "English",
+                        salesCount: book.salesCount || 0
                     })) || [],
                     events: data.data.upcomingEvents?.map(event => ({
                         id: event._id,
@@ -112,11 +115,29 @@ const ShopDetail = () => {
                         time: event.time,
                         description: event.description,
                         featured: event.featured || false,
-                        image: event.image || "https://images.unsplash.com/photo-1522202176988-66273c2fd55f"
+                        image: event.image || ""
                     })) || [],
                     paymentOptions: data.data.paymentOptions || [],
-                    seller: data.data.seller || {},
-                    reviews: data.data.reviews || []
+                    seller: data.data.seller || null,
+                    reviews: data.data.reviews || [],
+                    totalBooks: data.data.totalBooks || 0,
+                    createdAt: data.data.createdAt,
+                    updatedAt: data.data.updatedAt,
+                    location: {
+                        type: data.data.location?.type || "Point",
+                        coordinates: data.data.location?.coordinates || [],
+                        address: data.data.location?.address || ""
+                    },
+                    services: data.data.services || [],
+                    operatingHours: data.data.operatingHours || {},
+                    contact: {
+                        email: data.data.contact?.email || "",
+                        phoneNumber: data.data.contact?.phoneNumber || ""
+                    },
+                    images: {
+                        logo: data.data.images?.logo || "",
+                        background: data.data.images?.background || ""
+                    }
                 };
 
                 setStore(formattedStore);
@@ -367,8 +388,8 @@ const ShopDetail = () => {
                                                                 </span>
                                                             </div>
                                                             <div className="mt-2 flex justify-between items-center">
-                                                                <span className="font-medium">${book.price?.toFixed(2) || '0.00'}</span>
-                                                                <span className={`text-sm ${book.inStock ? "text-green-600" : "text-red-600"}`}>
+                                                                <span className="font-medium">birr {book.price?.toFixed(2) || '0.00'} </span>
+                                                                <span className={`text-sm {book.inStock ? "text-green-600" : "text-red-600"}`}>
                                                                     {book.inStock ? "In Stock" : "Out of Stock"}
                                                                 </span>
                                                             </div>

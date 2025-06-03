@@ -154,7 +154,7 @@ const Ebook = () => {
                                                     <h3 className="line-clamp-1 font-semibold">{ebook.title}</h3>
                                                     <p className="text-sm text-muted-foreground">{ebook.author}</p>
                                                     <div className="mt-2 flex items-center justify-between">
-                                                        <span className="font-medium">${(ebook.price || 0).toFixed(2)}</span>
+                                                        <span className="font-medium">birr {(ebook.price || 0).toFixed(2)}</span>
                                                         <Download className="h-4 w-4 text-muted-foreground" />
                                                     </div>
                                                     <StarRating rating={Math.round(ebook.averageRating || 0)} />

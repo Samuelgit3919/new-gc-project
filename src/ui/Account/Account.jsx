@@ -10,6 +10,7 @@ import Layout from "../../Layout"
 import axios from "axios"
 import { DataContext } from "@/DataProvider/DataProvider"
 import { Type } from "@/Utility/action.type"
+import { toast } from "react-hot-toast"
 
 export default function AccountPage() {
     const [activeTab, setActiveTab] = useState("profile")
@@ -60,12 +61,12 @@ export default function AccountPage() {
     // order useEffect
     useEffect(() => {
         const fetchOrders = async () => {
+            setLoading(true);
             try {
                 const token = localStorage.getItem("token");
-                console.log(token)
-
                 if (!token || !id) {
-                    throw new Error("User not authenticated");
+                    setOrders([]);
+                    return;
                 }
 
                 const response = await axios.get(`https://bookcompass.onrender.com/api/order/getOrder`, {
@@ -73,23 +74,19 @@ export default function AccountPage() {
                         Authorization: `Bearer ${token}`
                     }
                 });
-                if (!response.data || !response.data.orders) {
-                    throw new Error("No orders found");
-                }
-
-                // Optional: filter client-side if needed
-                const userOrders = response.data.orders?.filter(order => order.id === id);
-                setOrders(userOrders || []);
+                
+                const userOrders = response.data?.orders?.filter(order => order.id === id) || [];
+                setOrders(userOrders);
             } catch (err) {
                 console.error("Failed to fetch orders", err);
-                setError(err.message || "Something went wrong");
+                setOrders([]);
             } finally {
                 setLoading(false);
             }
         };
 
         fetchOrders();
-    }, []);
+    }, [id]);
 
     // user useEffect
     useEffect(() => {
@@ -114,18 +111,20 @@ export default function AccountPage() {
     useEffect(() => {
         const fetchWishlist = async () => {
             setWishlistLoading(true);
-            setWishlistError(null);
             try {
                 const token = localStorage.getItem("token");
-                if (!token) throw new Error("User not authenticated");
+                if (!token) {
+                    setWishlist([]);
+                    return;
+                }
                 const res = await fetch("https://bookcompass.onrender.com/api/wishlist", {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 if (!res.ok) throw new Error("Failed to fetch wishlist");
                 const data = await res.json();
                 setWishlist(Array.isArray(data.data) ? data.data : []);
-            } catch {
-                setWishlistError("Failed to load wishlist");
+            } catch (err) {
+                console.error("Failed to load wishlist", err);
                 setWishlist([]);
             } finally {
                 setWishlistLoading(false);
@@ -138,7 +137,7 @@ export default function AccountPage() {
         e.preventDefault();
         const token = localStorage.getItem("token");
         if (!token) {
-            alert("User not authenticated");
+            toast.error("User not authenticated");
             return;
         }
         const updatedProfile = {
@@ -157,15 +156,20 @@ export default function AccountPage() {
             });
             if (response.ok) {
                 const result = await response.json();
+                // Update local storage and context
                 localStorage.setItem("user", JSON.stringify(result.data));
                 setUser(result.data);
-                alert("User updated successfully");
+                dispatch({
+                    type: Type.SET_USER,
+                    user: result.data,
+                });
+                toast.success("Profile updated successfully");
             } else {
                 const errorData = await response.json();
-                alert(errorData.message || "Failed to update user");
+                toast.error(errorData.message || "Failed to update profile");
             }
         } catch (error) {
-            alert(error.message || "Error updating user");
+            toast.error(error.message || "Error updating profile");
         }
     };
 
@@ -258,6 +262,7 @@ export default function AccountPage() {
         e.preventDefault();
         setPasswordError("");
         setPasswordSuccess("");
+        
         if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
             setPasswordError("Please fill in all fields");
             return;
@@ -266,29 +271,35 @@ export default function AccountPage() {
             setPasswordError("New passwords do not match");
             return;
         }
+        
         setPasswordLoading(true);
         try {
             const token = localStorage.getItem("token");
             if (!token) throw new Error("User not authenticated");
-            const res = await fetch(`https://bookcompass.onrender.com/api/user/${id}`, {
+            
+            const res = await fetch(`https://bookcompass.onrender.com/api/users/me`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
-                    password: passwordForm.newPassword,
-                    oldPassword: passwordForm.currentPassword,
+                    currentPassword: passwordForm.currentPassword,
+                    newPassword: passwordForm.newPassword,
                 }),
             });
+            
+            const data = await res.json();
             if (!res.ok) {
-                const data = await res.json();
                 throw new Error(data.message || "Failed to change password");
             }
+            
             setPasswordSuccess("Password changed successfully");
             setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+            toast.success("Password changed successfully");
         } catch (err) {
             setPasswordError(err.message || "Failed to change password");
+            toast.error(err.message || "Failed to change password");
         } finally {
             setPasswordLoading(false);
         }
@@ -301,22 +312,38 @@ export default function AccountPage() {
         try {
             const token = localStorage.getItem("token");
             if (!token) throw new Error("User not authenticated");
-            const res = await fetch(`https://bookcompass.onrender.com/api/user/${id}`, {
+            
+            const res = await fetch(`https://bookcompass.onrender.com/api/users/me`, {
                 method: "DELETE",
-                headers: { Authorization: `Bearer ${token}` },
+                headers: { 
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                },
             });
+            
             if (!res.ok) {
                 const data = await res.json();
                 throw new Error(data.message || "Failed to delete account");
             }
+            
             setDeleteSuccess("Account deleted successfully");
+            toast.success("Account deleted successfully");
+            
+            // Clear all local storage and context
             localStorage.removeItem("token");
             localStorage.removeItem("user");
+            dispatch({
+                type: Type.SET_USER,
+                user: null,
+            });
+            
+            // Redirect after a short delay
             setTimeout(() => {
                 navigate("/");
             }, 1500);
         } catch (err) {
             setDeleteError(err.message || "Failed to delete account");
+            toast.error(err.message || "Failed to delete account");
         } finally {
             setDeleteLoading(false);
             setDeleteDialogOpen(false);
@@ -469,10 +496,19 @@ export default function AccountPage() {
 
                                 {loading ? (
                                     <p>Loading orders...</p>
-                                ) : error ? (
-                                    <p className="text-red-500">{error}</p>
                                 ) : userOrders.length === 0 ? (
-                                    <p>No orders found.</p>
+                                    <Card>
+                                        <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                                            <Package className="h-12 w-12 text-muted-foreground" />
+                                            <h3 className="mt-4 text-lg font-semibold">No orders yet</h3>
+                                            <p className="mt-2 text-sm text-muted-foreground">
+                                                When you make a purchase, your orders will appear here.
+                                            </p>
+                                            <Button className="mt-4" asChild>
+                                                <Link to="/books">Browse Books</Link>
+                                            </Button>
+                                        </CardContent>
+                                    </Card>
                                 ) : (
                                     <div className="space-y-4">
                                         {userOrders.map((order) => (

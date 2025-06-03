@@ -36,7 +36,7 @@ const HomePage = () => {
     const location = useLocation();
     const navigate = useNavigate();
 
-    console.log(books)
+    // console.log(books)
 
     // Extract and debounce search
     const queryParams = new URLSearchParams(location.search);

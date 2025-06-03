@@ -8,7 +8,7 @@ import { Badge } from "../../components/ui/badge"
 import { Input } from "../../components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "../../components/ui/dialog"
 import { Label } from "../../components/ui/label"
 
 export default function UserManagement() {
@@ -19,7 +19,12 @@ export default function UserManagement() {
     const [roleFilter, setRoleFilter] = useState("all")
     const [statusFilter, setStatusFilter] = useState("all")
     const [addDialogOpen, setAddDialogOpen] = useState(false);
-    const [addForm, setAddForm] = useState({ name: "", email: "", role: "Buyer", password: "" });
+    const [addForm, setAddForm] = useState({ 
+        name: "", 
+        email: "", 
+        role: "buyer", // Changed default to lowercase
+        password: "" 
+    });
     const [addLoading, setAddLoading] = useState(false);
     const [addError, setAddError] = useState("");
     const [actionLoading, setActionLoading] = useState("");
@@ -50,6 +55,20 @@ export default function UserManagement() {
         e.preventDefault();
         setAddLoading(true);
         setAddError("");
+
+        // Basic validation
+        if (addForm.password.length < 8) {
+            setAddError("Password must be at least 8 characters long");
+            setAddLoading(false);
+            return;
+        }
+
+        if (!addForm.email.includes('@')) {
+            setAddError("Please enter a valid email address");
+            setAddLoading(false);
+            return;
+        }
+
         try {
             const token = localStorage.getItem("token");
             const res = await fetch("https://bookcompass.onrender.com/api/admin/createUsers", {
@@ -58,17 +77,30 @@ export default function UserManagement() {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify(addForm),
+                body: JSON.stringify({
+                    ...addForm,
+                    role: addForm.role.toLowerCase() // Ensure role is lowercase
+                }),
             });
+
+            const data = await res.json();
+
             if (!res.ok) {
-                const data = await res.json();
                 throw new Error(data.message || "Failed to add user");
             }
+
             setAddDialogOpen(false);
-            setAddForm({ name: "", email: "", role: "Buyer", password: "" });
-            fetchUsers();
+            setAddForm({ 
+                name: "", 
+                email: "", 
+                role: "buyer", 
+                password: "" 
+            });
+            await fetchUsers(); // Refresh user list
+            
         } catch (err) {
-            setAddError(err.message || "Failed to add user");
+            console.error('Error adding user:', err);
+            setAddError(err.message || "Failed to add user. Please try again.");
         } finally {
             setAddLoading(false);
         }
@@ -226,16 +258,37 @@ export default function UserManagement() {
                 <DialogContent className="sm:max-w-[400px]">
                     <DialogHeader>
                         <DialogTitle>Add New User</DialogTitle>
+                        <DialogDescription>
+                            Create a new user account. All fields are required.
+                        </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleAddUser} className="space-y-4">
-                        {addError && <div className="bg-red-100 text-red-700 px-3 py-2 rounded text-sm">{addError}</div>}
+                        {addError && (
+                            <div className="bg-red-100 text-red-700 px-3 py-2 rounded text-sm">
+                                {addError}
+                            </div>
+                        )}
                         <div className="space-y-2">
                             <Label htmlFor="name">Name</Label>
-                            <Input id="name" value={addForm.name} onChange={e => setAddForm(f => ({ ...f, name: e.target.value }))} required />
+                            <Input 
+                                id="name" 
+                                value={addForm.name} 
+                                onChange={e => setAddForm(f => ({ ...f, name: e.target.value }))} 
+                                required 
+                                minLength={2}
+                                placeholder="Enter full name"
+                            />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="email">Email</Label>
-                            <Input id="email" type="email" value={addForm.email} onChange={e => setAddForm(f => ({ ...f, email: e.target.value }))} required />
+                            <Input 
+                                id="email" 
+                                type="email" 
+                                value={addForm.email} 
+                                onChange={e => setAddForm(f => ({ ...f, email: e.target.value }))} 
+                                required 
+                                placeholder="user@example.com"
+                            />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="role">Role</Label>
@@ -244,18 +297,38 @@ export default function UserManagement() {
                                     <SelectValue placeholder="Select role" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="Buyer">Buyer</SelectItem>
-                                    <SelectItem value="Seller">Seller</SelectItem>
+                                    <SelectItem value="buyer">Buyer</SelectItem>
+                                    <SelectItem value="seller">Seller</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="password">Password</Label>
-                            <Input id="password" type="password" value={addForm.password} onChange={e => setAddForm(f => ({ ...f, password: e.target.value }))} required />
+                            <Input 
+                                id="password" 
+                                type="password" 
+                                value={addForm.password} 
+                                onChange={e => setAddForm(f => ({ ...f, password: e.target.value }))} 
+                                required 
+                                minLength={8}
+                                placeholder="Minimum 8 characters"
+                            />
                         </div>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setAddDialogOpen(false)} disabled={addLoading}>Cancel</Button>
-                            <Button type="submit" disabled={addLoading}>{addLoading ? "Adding..." : "Add User"}</Button>
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                onClick={() => setAddDialogOpen(false)} 
+                                disabled={addLoading}
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                type="submit" 
+                                disabled={addLoading}
+                            >
+                                {addLoading ? "Adding..." : "Add User"}
+                            </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
