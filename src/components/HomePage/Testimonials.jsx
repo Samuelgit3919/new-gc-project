@@ -11,9 +11,9 @@ const Testimonials = () => {
                 halfStar: { icon: FaStarHalfAlt, count: 1 }, // Example: 1 half star
                 emptyStar: { icon: FaRegStar, count: 0 } // Example: 0 empty stars
             },
-            message: "Lorem ipsum dolor sit amet consectetur adipisicing elit. Ipsam quos nemo id consectetur! Sapiente molestiae recusandae sequi. Consequatur, dicta cum.",
-            name: "David",
-            title: "CEO",
+            message: "BookCompas has transformed how I find books! The personalized recommendations from the smart system helped me discover local Ethiopian novels I’d never have found otherwise, and the chatbot’s quick help in Amharic made shopping a breeze. It`s like having a librarian in my pocket!",
+            name: "Abebe Tadesse",
+            title: " Addis Ababa Reader",
         },
         {
             start: {
@@ -21,9 +21,9 @@ const Testimonials = () => {
                 halfStar: { icon: FaStarHalfAlt, count: 0 }, // Example: 0 half stars
                 emptyStar: { icon: FaRegStar, count: 2 } // Example: 2 empty stars
             },
-            message: "Lorem ipsum dolor sit amet consectetur adipisicing elit. Ipsam quos nemo id consectetur! Sapiente molestiae recusandae sequi. Consequatur, dicta cum.",
-            name: "John",
-            title: "CTO",
+            message:"As a small bookstore owner in Nazret/Adama, BookCompas has been a game-changer. The easy inventory tools and the way it connects me to more customers have boosted my sales, all thanks to its innovative design that supports us local sellers.",
+            name:  "Sara Mekonnen",
+            title: "Local Bookstore Owner",
         },
         {
             start: {
@@ -31,9 +31,9 @@ const Testimonials = () => {
                 halfStar: { icon: FaStarHalfAlt, count: 0 }, // Example: 0 half stars
                 emptyStar: { icon: FaRegStar, count: 0 } // Example: 0 empty stars
             },
-            message: "Lorem ipsum dolor sit amet consectetur adipisicing elit. Ipsam quos nemo id consectetur! Sapiente molestiae recusandae sequi. Consequatur, dicta cum.",
-            name: "Sarah",
-            title: "Marketing Head",
+            message: "I love how BookCompas makes learning fun! The audiobook feature and tailored book suggestions saved me hours of searching, and the friendly chatbot answered my questions instantly. It’s the perfect companion for my studies!",
+            name: "Hana Getachew",
+            title: "Student",
         }
     ];
 
@@ -42,8 +42,7 @@ const Testimonials = () => {
             <div className="max-w-7xl mx-auto">
                 <h1 className="text-3xl font-bold text-center text-gray-900 mb-6">Testimonials</h1>
                 <p className="text-center text-gray-600 mb-12 max-w-2xl mx-auto">
-                    Lorem ipsum dolor sit amet consectetur adipisicing elit. Ipsam quos nemo id consectetur! Sapiente molestiae recusandae sequi. Consequatur, dicta cum.
-                </p>
+Real feedback from users and bookstore partners, sharing their experiences with BookCompas, highlighting how it enhances book discovery, simplifies purchases, and supports the local reading community.                </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {testimony.map((test, index) => (
                         <div key={index} className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">

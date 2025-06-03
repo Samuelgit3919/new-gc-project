@@ -51,7 +51,7 @@ export default function HomeLayout() {
                     {/* Button Section */}
                     <div className="flex justify-center lg:justify-start">
                         <a
-                            href="#"
+                            href="/ebook"
                             className="inline-flex items-center gap-3 px-6 py-3 text-white font-semibold bg-gray-700 hover:bg-gray-800 transition rounded-md shadow-md hover:shadow-lg"
                             aria-label="Go to Collections"
                         >
